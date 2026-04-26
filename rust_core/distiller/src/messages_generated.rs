@@ -21,15 +21,16 @@ pub mod scmoa {
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_PAYLOAD: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_PAYLOAD: u8 = 4;
+pub const ENUM_MAX_PAYLOAD: u8 = 5;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PAYLOAD: [Payload; 5] = [
+pub const ENUM_VALUES_PAYLOAD: [Payload; 6] = [
   Payload::NONE,
   Payload::HivemindUpdate,
   Payload::HivemindResult,
   Payload::TopologyMutation,
   Payload::Checkpoint,
+  Payload::Config,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -42,15 +43,17 @@ impl Payload {
   pub const HivemindResult: Self = Self(2);
   pub const TopologyMutation: Self = Self(3);
   pub const Checkpoint: Self = Self(4);
+  pub const Config: Self = Self(5);
 
   pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 4;
+  pub const ENUM_MAX: u8 = 5;
   pub const ENUM_VALUES: &'static [Self] = &[
     Self::NONE,
     Self::HivemindUpdate,
     Self::HivemindResult,
     Self::TopologyMutation,
     Self::Checkpoint,
+    Self::Config,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
@@ -60,6 +63,7 @@ impl Payload {
       Self::HivemindResult => Some("HivemindResult"),
       Self::TopologyMutation => Some("TopologyMutation"),
       Self::Checkpoint => Some("Checkpoint"),
+      Self::Config => Some("Config"),
       _ => None,
     }
   }
@@ -886,6 +890,239 @@ impl core::fmt::Debug for Checkpoint<'_> {
       ds.finish()
   }
 }
+pub enum ConfigOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct Config<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for Config<'a> {
+  type Inner = Config<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> Config<'a> {
+  pub const VT_LEARNING_RATE: flatbuffers::VOffsetT = 4;
+  pub const VT_BATCH_SIZE: flatbuffers::VOffsetT = 6;
+  pub const VT_HIDDEN_DIM: flatbuffers::VOffsetT = 8;
+  pub const VT_NHEAD: flatbuffers::VOffsetT = 10;
+  pub const VT_NUM_LAYERS: flatbuffers::VOffsetT = 12;
+  pub const VT_NUM_SPECIALISTS: flatbuffers::VOffsetT = 14;
+  pub const VT_MAX_SEQ: flatbuffers::VOffsetT = 16;
+  pub const VT_ENTROPY_COEF: flatbuffers::VOffsetT = 18;
+  pub const VT_MUTATION_THRESHOLD: flatbuffers::VOffsetT = 20;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    Config { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args ConfigArgs
+  ) -> flatbuffers::WIPOffset<Config<'bldr>> {
+    let mut builder = ConfigBuilder::new(_fbb);
+    builder.add_mutation_threshold(args.mutation_threshold);
+    builder.add_entropy_coef(args.entropy_coef);
+    builder.add_max_seq(args.max_seq);
+    builder.add_num_specialists(args.num_specialists);
+    builder.add_num_layers(args.num_layers);
+    builder.add_nhead(args.nhead);
+    builder.add_hidden_dim(args.hidden_dim);
+    builder.add_batch_size(args.batch_size);
+    builder.add_learning_rate(args.learning_rate);
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn learning_rate(&self) -> f32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<f32>(Config::VT_LEARNING_RATE, Some(0.0)).unwrap()}
+  }
+  #[inline]
+  pub fn batch_size(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(Config::VT_BATCH_SIZE, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn hidden_dim(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(Config::VT_HIDDEN_DIM, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn nhead(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(Config::VT_NHEAD, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn num_layers(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(Config::VT_NUM_LAYERS, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn num_specialists(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(Config::VT_NUM_SPECIALISTS, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn max_seq(&self) -> u32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u32>(Config::VT_MAX_SEQ, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn entropy_coef(&self) -> f32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<f32>(Config::VT_ENTROPY_COEF, Some(0.0)).unwrap()}
+  }
+  #[inline]
+  pub fn mutation_threshold(&self) -> f32 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<f32>(Config::VT_MUTATION_THRESHOLD, Some(0.0)).unwrap()}
+  }
+}
+
+impl flatbuffers::Verifiable for Config<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<f32>("learning_rate", Self::VT_LEARNING_RATE, false)?
+     .visit_field::<u32>("batch_size", Self::VT_BATCH_SIZE, false)?
+     .visit_field::<u32>("hidden_dim", Self::VT_HIDDEN_DIM, false)?
+     .visit_field::<u32>("nhead", Self::VT_NHEAD, false)?
+     .visit_field::<u32>("num_layers", Self::VT_NUM_LAYERS, false)?
+     .visit_field::<u32>("num_specialists", Self::VT_NUM_SPECIALISTS, false)?
+     .visit_field::<u32>("max_seq", Self::VT_MAX_SEQ, false)?
+     .visit_field::<f32>("entropy_coef", Self::VT_ENTROPY_COEF, false)?
+     .visit_field::<f32>("mutation_threshold", Self::VT_MUTATION_THRESHOLD, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct ConfigArgs {
+    pub learning_rate: f32,
+    pub batch_size: u32,
+    pub hidden_dim: u32,
+    pub nhead: u32,
+    pub num_layers: u32,
+    pub num_specialists: u32,
+    pub max_seq: u32,
+    pub entropy_coef: f32,
+    pub mutation_threshold: f32,
+}
+impl<'a> Default for ConfigArgs {
+  #[inline]
+  fn default() -> Self {
+    ConfigArgs {
+      learning_rate: 0.0,
+      batch_size: 0,
+      hidden_dim: 0,
+      nhead: 0,
+      num_layers: 0,
+      num_specialists: 0,
+      max_seq: 0,
+      entropy_coef: 0.0,
+      mutation_threshold: 0.0,
+    }
+  }
+}
+
+pub struct ConfigBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> ConfigBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_learning_rate(&mut self, learning_rate: f32) {
+    self.fbb_.push_slot::<f32>(Config::VT_LEARNING_RATE, learning_rate, 0.0);
+  }
+  #[inline]
+  pub fn add_batch_size(&mut self, batch_size: u32) {
+    self.fbb_.push_slot::<u32>(Config::VT_BATCH_SIZE, batch_size, 0);
+  }
+  #[inline]
+  pub fn add_hidden_dim(&mut self, hidden_dim: u32) {
+    self.fbb_.push_slot::<u32>(Config::VT_HIDDEN_DIM, hidden_dim, 0);
+  }
+  #[inline]
+  pub fn add_nhead(&mut self, nhead: u32) {
+    self.fbb_.push_slot::<u32>(Config::VT_NHEAD, nhead, 0);
+  }
+  #[inline]
+  pub fn add_num_layers(&mut self, num_layers: u32) {
+    self.fbb_.push_slot::<u32>(Config::VT_NUM_LAYERS, num_layers, 0);
+  }
+  #[inline]
+  pub fn add_num_specialists(&mut self, num_specialists: u32) {
+    self.fbb_.push_slot::<u32>(Config::VT_NUM_SPECIALISTS, num_specialists, 0);
+  }
+  #[inline]
+  pub fn add_max_seq(&mut self, max_seq: u32) {
+    self.fbb_.push_slot::<u32>(Config::VT_MAX_SEQ, max_seq, 0);
+  }
+  #[inline]
+  pub fn add_entropy_coef(&mut self, entropy_coef: f32) {
+    self.fbb_.push_slot::<f32>(Config::VT_ENTROPY_COEF, entropy_coef, 0.0);
+  }
+  #[inline]
+  pub fn add_mutation_threshold(&mut self, mutation_threshold: f32) {
+    self.fbb_.push_slot::<f32>(Config::VT_MUTATION_THRESHOLD, mutation_threshold, 0.0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ConfigBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    ConfigBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<Config<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for Config<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("Config");
+      ds.field("learning_rate", &self.learning_rate());
+      ds.field("batch_size", &self.batch_size());
+      ds.field("hidden_dim", &self.hidden_dim());
+      ds.field("nhead", &self.nhead());
+      ds.field("num_layers", &self.num_layers());
+      ds.field("num_specialists", &self.num_specialists());
+      ds.field("max_seq", &self.max_seq());
+      ds.field("entropy_coef", &self.entropy_coef());
+      ds.field("mutation_threshold", &self.mutation_threshold());
+      ds.finish()
+  }
+}
 pub enum MessageOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -995,6 +1232,21 @@ impl<'a> Message<'a> {
     }
   }
 
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_config(&self) -> Option<Config<'a>> {
+    if self.payload_type() == Payload::Config {
+      self.payload().map(|t| {
+       // Safety:
+       // Created from a valid Table for this object
+       // Which contains a valid union in this slot
+       unsafe { Config::init_from_table(t) }
+     })
+    } else {
+      None
+    }
+  }
+
 }
 
 impl flatbuffers::Verifiable for Message<'_> {
@@ -1010,6 +1262,7 @@ impl flatbuffers::Verifiable for Message<'_> {
           Payload::HivemindResult => v.verify_union_variant::<flatbuffers::ForwardsUOffset<HivemindResult>>("Payload::HivemindResult", pos),
           Payload::TopologyMutation => v.verify_union_variant::<flatbuffers::ForwardsUOffset<TopologyMutation>>("Payload::TopologyMutation", pos),
           Payload::Checkpoint => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Checkpoint>>("Payload::Checkpoint", pos),
+          Payload::Config => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Config>>("Payload::Config", pos),
           _ => Ok(()),
         }
      })?
@@ -1087,6 +1340,13 @@ impl core::fmt::Debug for Message<'_> {
         },
         Payload::Checkpoint => {
           if let Some(x) = self.payload_as_checkpoint() {
+            ds.field("payload", &x)
+          } else {
+            ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        Payload::Config => {
+          if let Some(x) = self.payload_as_config() {
             ds.field("payload", &x)
           } else {
             ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")

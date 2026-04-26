@@ -8,3 +8,4 @@ class Payload(object):
     HivemindResult = 2
     TopologyMutation = 3
     Checkpoint = 4
+    Config = 5

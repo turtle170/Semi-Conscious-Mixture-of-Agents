@@ -35,11 +35,24 @@ table Checkpoint {
   step_id: uint64;
 }
 
+table Config {
+  learning_rate: float32;
+  batch_size: uint32;
+  hidden_dim: uint32;
+  nhead: uint32;
+  num_layers: uint32;
+  num_specialists: uint32;
+  max_seq: uint32;
+  entropy_coef: float32;
+  mutation_threshold: float32;
+}
+
 union Payload {
   HivemindUpdate,
   HivemindResult,
   TopologyMutation,
-  Checkpoint
+  Checkpoint,
+  Config
 }
 
 table Message {
