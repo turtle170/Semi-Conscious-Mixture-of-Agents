@@ -1,0 +1,7 @@
+[workspace]
+members = [
+    "env",
+    "distiller",
+    "fetcher"
+]
+resolver = "2"

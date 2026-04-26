@@ -1,0 +1,59 @@
+namespace scmoa;
+
+table StateUpdate {
+  state: [uint8];
+  step_id: uint64;
+  reward: float32;
+  done: bool;
+  context: [float32]; 
+}
+
+table Action {
+  action: [uint8];
+  step_id: uint64;
+}
+
+table Prediction {
+  predicted_state: [uint8];
+  step_id: uint64;
+}
+
+table RewardError {
+  prediction_error: float32;
+  reward: float32;
+  step_id: uint64;
+}
+
+table TopologyMutation {
+  command: string;
+  step_id: uint64;
+}
+
+table Checkpoint {
+  filepath: string;
+  step_id: uint64;
+}
+
+table Telemetry {
+  gravity: float32;
+  friction: float32;
+  reward: float32;
+  entropy: float32;
+  step_id: ulong;
+}
+
+union Payload {
+  StateUpdate,
+  Action,
+  Prediction,
+  RewardError,
+  TopologyMutation,
+  Checkpoint,
+  Telemetry
+}
+
+table Message {
+  payload: Payload;
+}
+
+root_type Message;

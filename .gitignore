@@ -1,0 +1,23 @@
+# Python
+py_env/
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+
+# Rust
+rust_core/target/
+
+# Binaries & Archives
+flatc.exe
+flatc.zip
+python_installer.exe
+
+# IDEs
+.vscode/
+.idea/
+
+# Checkpoints
+checkpoints/
