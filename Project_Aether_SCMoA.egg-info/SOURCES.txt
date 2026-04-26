@@ -1,0 +1,6 @@
+README.md
+setup_msi.py
+Project_Aether_SCMoA.egg-info/PKG-INFO
+Project_Aether_SCMoA.egg-info/SOURCES.txt
+Project_Aether_SCMoA.egg-info/dependency_links.txt
+Project_Aether_SCMoA.egg-info/top_level.txt
