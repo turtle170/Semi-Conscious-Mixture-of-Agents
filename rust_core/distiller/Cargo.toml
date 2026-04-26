@@ -3,9 +3,18 @@ name = "distiller"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "aether"
+path = "src/main.rs"
+
 [dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
 env = { version = "0.1.0", path = "../env" }
 fetcher = { version = "0.1.0", path = "../fetcher" }
 flatbuffers = "25.12.19"
 interprocess = "2.4.2"
+lyon_geom = "1.0.19"
+resvg = "0.47.0"
+usvg = "0.47.0"
+sysinfo = "0.38.4"
 tokio = { version = "1.52.1", features = ["full"] }
