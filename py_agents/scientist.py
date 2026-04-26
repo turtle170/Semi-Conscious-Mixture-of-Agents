@@ -1,6 +1,11 @@
 import struct
 import time
 import os
+import sys
+
+# Fix FlatBuffers absolute imports for the generated namespace
+sys.path.append(os.path.join(os.path.dirname(__file__), "schema"))
+
 import flatbuffers
 import torch
 import torch.nn as nn
