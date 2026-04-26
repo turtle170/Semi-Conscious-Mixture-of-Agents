@@ -65,6 +65,14 @@ def start_scientist():
     model.eval()
     context_window = []
 
+    # Optimization: pre-compute references outside loop
+    payload_state_update = Payload().StateUpdate
+    payload_checkpoint = Payload().Checkpoint
+    payload_prediction = Payload().Prediction
+
+    from schema.scmoa.Prediction import PredictionStart, PredictionAddPredictedState, PredictionAddStepId, PredictionEnd
+    from schema.scmoa.Message import MessageStart, MessageAddPayloadType, MessageAddPayload, MessageEnd
+
     while True:
         try:
             err, len_bytes = win32file.ReadFile(handle, 4)
@@ -73,11 +81,16 @@ def start_scientist():
             err, msg_bytes = win32file.ReadFile(handle, msg_len)
             msg = Message.GetRootAsMessage(msg_bytes, 0)
             
-            if msg.PayloadType() == Payload().StateUpdate:
+            payload_type = msg.PayloadType()
+
+            if payload_type == payload_state_update:
                 su = StateUpdate()
                 su.Init(msg.Payload().Bytes, msg.Payload().Pos)
+
+                # Optimized list comprehension
                 state_arr = [su.State(i) for i in range(su.StateLength())]
                 ctx_arr = [su.Context(i) for i in range(su.ContextLength())]
+
                 context_window.extend(state_arr)
                 if len(context_window) > 16: context_window = context_window[-16:]
                 
@@ -88,23 +101,26 @@ def start_scientist():
                     pred_token = logits[0, -1, :].argmax().item()
                 
                 builder.Clear()
+
                 PredictionStartPredictedStateVector(builder, 1)
                 builder.PrependUint8(pred_token)
                 pred_vec = builder.EndVector()
-                from schema.scmoa.Prediction import PredictionStart, PredictionAddPredictedState, PredictionAddStepId, PredictionEnd
+
                 PredictionStart(builder)
                 PredictionAddPredictedState(builder, pred_vec)
                 PredictionAddStepId(builder, su.StepId())
                 pred_table = PredictionEnd(builder)
-                from schema.scmoa.Message import MessageStart, MessageAddPayloadType, MessageAddPayload, MessageEnd
+
                 MessageStart(builder)
-                MessageAddPayloadType(builder, Payload().Prediction)
+                MessageAddPayloadType(builder, payload_prediction)
                 MessageAddPayload(builder, pred_table)
                 builder.Finish(MessageEnd(builder))
-                win32file.WriteFile(handle, struct.pack('<I', len(builder.Output())))
-                win32file.WriteFile(handle, builder.Output())
                 
-            elif msg.PayloadType() == Payload().Checkpoint:
+                out_buf = builder.Output()
+                win32file.WriteFile(handle, struct.pack('<I', len(out_buf)))
+                win32file.WriteFile(handle, out_buf)
+
+            elif payload_type == payload_checkpoint:
                 cp = Checkpoint()
                 cp.Init(msg.Payload().Bytes, msg.Payload().Pos)
                 model.save_checkpoint(cp.Filepath().decode('utf-8'))

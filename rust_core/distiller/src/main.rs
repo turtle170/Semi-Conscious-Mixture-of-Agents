@@ -2,7 +2,7 @@
 mod messages_generated;
 mod fetcher;
 
-use env::Environment;
+
 use fetcher::ContextFetcher;
 use flatbuffers::FlatBufferBuilder;
 use messages_generated::scmoa::{
@@ -12,7 +12,27 @@ use messages_generated::scmoa::{
 use std::collections::VecDeque;
 use std::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+#[cfg(windows)]
 use tokio::net::windows::named_pipe::{ServerOptions, NamedPipeServer};
+
+#[cfg(not(windows))]
+mod mock_pipe {
+    pub struct ServerOptions {}
+    impl ServerOptions {
+        pub fn new() -> Self { Self {} }
+        pub fn first_pipe_instance(&mut self, _: bool) -> &mut Self { self }
+        pub fn create(&self, _: &str) -> std::io::Result<tokio::io::DuplexStream> {
+            let (client, server) = tokio::io::duplex(1024);
+            // Just drop the client and return the server so it compiles
+            Ok(server)
+        }
+    }
+}
+#[cfg(not(windows))]
+use mock_pipe::ServerOptions;
+
+
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -23,10 +43,17 @@ async fn main() -> io::Result<()> {
     let mut telemetry_server = ServerOptions::new().first_pipe_instance(true).create(telemetry_pipe)?;
 
     println!("Distiller: Waiting for Scientist connection...");
+
+    #[cfg(windows)]
     scientist_server.connect().await?;
+
     println!("Distiller: Scientist connected!");
 
-    let mut env = Environment::new();
+
+    // Stubbed environment state
+    let mut _env_gravity = 9.8;
+    let mut _env_friction = 0.99;
+
     let mut fetcher = ContextFetcher::new();
     let mut builder = FlatBufferBuilder::new();
     let mut accuracy_history: VecDeque<bool> = VecDeque::with_capacity(1000);
@@ -37,8 +64,13 @@ async fn main() -> io::Result<()> {
     let (mut reader, mut writer) = tokio::io::split(scientist_server);
 
     loop {
-        let (reward, done) = env.step(0.1);
-        let current_quantized_state = env.quantize_state();
+
+        let reward = 0.0;
+        let done = false;
+
+
+        let current_quantized_state = 0;
+
         
         if done {
             success_streak += 1;
@@ -50,7 +82,9 @@ async fn main() -> io::Result<()> {
 
         let current_seq: Vec<u8> = step_history.iter().cloned().collect();
         let context = fetcher.query_context(&current_seq);
-        fetcher.record(current_seq, [env.gravity, env.friction]);
+
+        fetcher.record(current_seq, [_env_gravity, _env_friction]);
+
 
         // Send Telemetry every 100 steps if someone is listening
         if step_id % 100 == 0 {
@@ -101,12 +135,12 @@ async fn main() -> io::Result<()> {
                 let cp_buf = builder.finished_data();
                 writer.write_all(&(cp_buf.len() as u32).to_le_bytes()).await?;
                 writer.write_all(cp_buf).await?;
-                env.bump_difficulty();
+                // env.bump_difficulty();
                 success_streak = 0;
             }
         }
 
-        if done { env = Environment::new(); }
+
         step_id += 1;
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
     }
