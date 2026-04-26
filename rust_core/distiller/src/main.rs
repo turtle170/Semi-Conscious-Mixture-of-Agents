@@ -18,11 +18,11 @@ use messages_generated::scmoa::{
 };
 
 #[derive(Parser, Debug, Clone)]
-#[command(name = "aether", version = "2.1", about = "Aether SCMoA Hyper-Optimized Training CLI")]
+#[command(name = "aether", version = "2.2", about = "Aether SCMoA Hyper-Optimized Training CLI")]
 struct Args {
-    /// Path to the .SVG environment file
+    /// Path to the .SVG environment file (Optional - generates random if omitted)
     #[arg(short, long)]
-    svg: PathBuf,
+    svg: Option<PathBuf>,
 
     /// Number of CPU threads to utilize
     #[arg(short, long, default_value_t = 8)]
@@ -144,7 +144,7 @@ fn parse_range(range_str: &str) -> (f32, f32) {
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let args = Args::parse();
-    println!("Aether CLI v2.1: Initializing...");
+    println!("Aether CLI v2.2: Initializing...");
 
     let mem_per_shard_kb = 512; 
     let available_ram_kb = args.ram_mb * 1024;
@@ -153,20 +153,27 @@ async fn main() -> io::Result<()> {
     let hz = if is_performance { 500 } else { 100 };
 
     let g_range = parse_range(&args.gravity_range);
-    let _f_range = parse_range(&args.friction_range);
 
-    let svg_env = parse_svg(&args.svg);
+    // Environment Setup
+    let svg_env = args.svg.as_ref().map(|path| parse_svg(path));
+    
     let mut shards: Vec<Shard> = (0..shard_count).map(|id| {
         let mut s = Shard::new(id);
-        s.goal_pos = svg_env.goal;
-        s.obstacles = svg_env.obstacles.clone();
+        if let Some(ref env) = svg_env {
+            s.goal_pos = env.goal;
+            s.obstacles = env.obstacles.clone();
+        } else {
+            s.generate_procedural_map();
+        }
         s.goal_radius = if is_performance { 4.0 } else { 8.0 };
         s
     }).collect();
 
     let pipe_name = r"\\.\pipe\scmoa_scientist";
     let server = ServerOptions::new().first_pipe_instance(true).create(pipe_name)?;
-    println!("Aether CLI: Shards={} | Hz={} | Mode={}", shard_count, hz, if is_performance { "P" } else { "E" });
+    println!("Aether CLI: Shards={} | Hz={} | Mode={} | Env={}", 
+             shard_count, hz, if is_performance { "P" } else { "E" },
+             if args.svg.is_some() { "Custom SVG" } else { "Procedural" });
 
     println!("Aether CLI: Awaiting Hivemind Agent...");
     server.connect().await?;
@@ -216,7 +223,14 @@ async fn main() -> io::Result<()> {
             let state = shard.quantize_state();
             let spec_id = if shard.params.gravity > (g_range.0 + (g_range.1 - g_range.0)/2.0) { 1 } else { 0 };
             shard_data.push((shard.id, state, reward, done, [shard.params.gravity, shard.params.friction], spec_id));
-            if done { shard.randomize_physics(); }
+            
+            if done { 
+                shard.randomize_physics(); 
+                // If it was procedural, regenerate sometimes to force high generalization
+                if args.svg.is_none() && step_id % 1000 == 0 {
+                    shard.generate_procedural_map();
+                }
+            }
         }
 
         builder.reset();
@@ -270,12 +284,13 @@ async fn main() -> io::Result<()> {
         if last_log_instant.elapsed() >= Duration::from_secs(1) {
             if let Ok(mut log_file) = File::create(&args.log) {
                 let uptime = start_time.elapsed();
-                writeln!(log_file, "Aether SCMoA CLI v2.1 | Step: {}", step_id).ok();
+                writeln!(log_file, "Aether SCMoA CLI v2.2 | Step: {}", step_id).ok();
                 writeln!(log_file, "----------------------------------------").ok();
                 writeln!(log_file, "Uptime:      {:?}", uptime).ok();
-                writeln!(log_file, "Format:      {} | Quant: {}", args.output_format, args.quantization).ok();
+                writeln!(log_file, "Env:         {}", if args.svg.is_some() { "Custom (Jitter Active)" } else { "Procedural (Auto-Gen)" }).ok();
+                writeln!(log_file, "Throughput:  {} steps/sec", step_id / (uptime.as_secs().max(1))).ok();
                 writeln!(log_file, "Frequency:   {} Hz | Shards: {}", hz, shard_count).ok();
-                writeln!(log_file, "Out Dir:     {:?}", args.output_dir).ok();
+                writeln!(log_file, "Format:      {} | Quant: {}", args.output_format, args.quantization).ok();
             }
             last_log_instant = Instant::now();
         }
