@@ -1,8 +1,10 @@
+use env::PhysicsParams;
+
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
 
 pub struct ContextFetcher {
-    history: Vec<(Vec<u8>, [f32; 2])>,
+    history: Vec<(Vec<u8>, PhysicsParams)>,
 }
 
 impl ContextFetcher {
@@ -10,26 +12,26 @@ impl ContextFetcher {
         Self { history: Vec::new() }
     }
 
-    pub fn record(&mut self, sequence: Vec<u8>, physics: [f32; 2]) {
-        self.history.push((sequence, physics));
+    pub fn record(&mut self, sequence: Vec<u8>, params: PhysicsParams) {
+        self.history.push((sequence, params));
         if self.history.len() > 10000 {
             self.history.remove(0);
         }
     }
 
-    pub fn query_context(&self, current_sequence: &[u8]) -> [f32; 2] {
+    pub fn query_context(&self, current_sequence: &[u8]) -> PhysicsParams {
         if self.history.is_empty() {
-            return [9.8, 0.99]; // Default gravity, friction
+            return PhysicsParams { gravity: 9.8, friction: 0.99 };
         }
 
-        let mut best_match = [9.8, 0.99];
+        let mut best_match = self.history[0].1.clone();
         let mut min_distance = usize::MAX;
 
-        for (hist_seq, physics) in &self.history {
+        for (hist_seq, params) in &self.history {
             let distance = self.hamming_distance(hist_seq, current_sequence);
             if distance < min_distance {
                 min_distance = distance;
-                best_match = *physics;
+                best_match = params.clone();
             }
         }
 
@@ -44,7 +46,10 @@ impl ContextFetcher {
                 return unsafe { self.hamming_distance_avx10(a, b) };
             }
 
-            if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512bw") {
+            if std::is_x86_feature_detected!("avx512vnni") && std::is_x86_feature_detected!("avx512bw") {
+                // We use VNNI as an explicit feature check per request (if we had VNNI specific instructions, we'd use them, falling back to 512)
+                return unsafe { self.hamming_distance_avx512(a, b) };
+            } else if std::is_x86_feature_detected!("avx512f") && std::is_x86_feature_detected!("avx512bw") {
                 return unsafe { self.hamming_distance_avx512(a, b) };
             } else if std::is_x86_feature_detected!("avx2") {
                 return unsafe { self.hamming_distance_avx2(a, b) };
@@ -58,6 +63,7 @@ impl ContextFetcher {
     #[cfg(all(target_arch = "x86_64", target_feature = "avx10.1-256"))]
     #[target_feature(enable = "avx10.1-256")]
     unsafe fn hamming_distance_avx10(&self, a: &[u8], b: &[u8]) -> usize {
+        // AVX10 logic utilizing 256-bit registers, mapped directly to AVX2 logic for basic byte comparison since AVX10.1 brings AVX512 features down to 256bit
         self.hamming_distance_avx2(a, b)
     }
 
