@@ -10,13 +10,7 @@ import win32file
 from safetensors.torch import save_file
 
 from schema.scmoa.Message import Message
-from schema.scmoa.HivemindUpdate import HivemindUpdate
-from schema.scmoa.ShardUpdate import ShardUpdate
-from schema.scmoa.HivemindResult import HivemindResult, HivemindResultStart, HivemindResultAddResults, HivemindResultAddStepId, HivemindResultEnd
-from schema.scmoa.ShardResult import ShardResult, ShardResultCreate
-from schema.scmoa.Config import Config
-from schema.scmoa.Checkpoint import Checkpoint
-from schema.scmoa.Payload import Payload
+from schema.scmoa import HivemindUpdate, ShardUpdate, HivemindResult, ShardResult, Config, Checkpoint, Payload, StateUpdate
 
 PIPE_NAME = r'\\.\pipe\scmoa_scientist'
 
@@ -60,10 +54,7 @@ class HivemindAgent(nn.Module):
     def save_to_format(self, filepath, fmt, quant, max_seq):
         print(f"Agent: Exporting to {fmt} (Quant: {quant}) -> {filepath}")
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        
-        # Base state dict
         sd = self.state_dict()
-        
         if fmt.lower() == "pytorch":
             torch.save(sd, filepath)
         elif fmt.lower() == "safetensors":
@@ -76,8 +67,6 @@ class HivemindAgent(nn.Module):
                               input_names=['states', 'context', 'specialists'],
                               output_names=['preds', 'actions'])
         else:
-            # For GGUF/EXL2/AWQ/TF/TFLite, we'd call external tools.
-            # Demo: fall back to SafeTensors with a warning.
             print(f"Agent Warning: {fmt} export not natively implemented. Falling back to SafeTensors.")
             save_file(sd, filepath + ".safetensors")
 
@@ -90,12 +79,13 @@ def start_hivemind():
             break
         except Exception: time.sleep(0.5)
     
-    # Sync Config
+    print("Hivemind: Synchronizing configuration...")
     err, lb = win32file.ReadFile(handle, 4)
     mlen = struct.unpack('<I', lb)[0]
     err, mbytes = win32file.ReadFile(handle, mlen)
     msg = Message.GetRootAsMessage(mbytes, 0)
-    cfg = Config()
+    
+    cfg = Config.Config()
     cfg.Init(msg.Payload().Bytes, msg.Payload().Pos)
     
     agent = HivemindAgent(d_model=cfg.HiddenDim(), nhead=cfg.Nhead(), num_layers=cfg.NumLayers(), num_specialists=cfg.NumSpecialists())
@@ -114,8 +104,10 @@ def start_hivemind():
             err, mbytes = win32file.ReadFile(handle, mlen)
             msg = Message.GetRootAsMessage(mbytes, 0)
             
-            if msg.PayloadType() == Payload().HivemindUpdate:
-                hu = HivemindUpdate()
+            p_type = msg.PayloadType()
+            
+            if p_type == Payload.Payload().HivemindUpdate:
+                hu = HivemindUpdate.HivemindUpdate()
                 hu.Init(msg.Payload().Bytes, msg.Payload().Pos)
                 bx, bc, bs, bids = [], [], [], []
                 for i in range(hu.ShardsLength()):
@@ -150,18 +142,18 @@ def start_hivemind():
                 hr = HivemindResult.HivemindResultEnd(builder)
                 
                 from schema.scmoa.Message import MessageStart, MessageAddPayloadType, MessageAddPayload, MessageEnd
-                MessageStart(builder); MessageAddPayloadType(builder, Payload().HivemindResult); MessageAddPayload(builder, hr)
+                MessageStart(builder); MessageAddPayloadType(builder, Payload.Payload().HivemindResult); MessageAddPayload(builder, hr)
                 builder.Finish(MessageEnd(builder))
                 win32file.WriteFile(handle, struct.pack('<I', len(builder.Output())))
                 win32file.WriteFile(handle, builder.Output())
 
-            elif msg.PayloadType() == Payload().Checkpoint:
-                cp = Checkpoint()
+            elif p_type == Payload.Payload().Checkpoint:
+                cp = Checkpoint.Checkpoint()
                 cp.Init(msg.Payload().Bytes, msg.Payload().Pos)
                 agent.save_to_format(cp.Filepath().decode('utf-8'), out_fmt, quant_type, max_seq)
 
         except Exception as e:
-            print(f"Agent Error: {e}"); break
+            print(f"Agent Error: {e}"); import traceback; traceback.print_exc(); break
 
 if __name__ == "__main__":
     start_hivemind()
