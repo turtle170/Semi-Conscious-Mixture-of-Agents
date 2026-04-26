@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 env = { version = "0.1.0", path = "../env" }
+fetcher = { version = "0.1.0", path = "../fetcher" }
 flatbuffers = "25.12.19"
 interprocess = "2.4.2"
 tokio = { version = "1.52.1", features = ["full"] }

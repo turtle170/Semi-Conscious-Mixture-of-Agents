@@ -1,26 +1,22 @@
 #[allow(dead_code, unused_imports, clippy::all)]
 mod messages_generated;
-mod fetcher;
 
 use env::Environment;
 use fetcher::ContextFetcher;
 use flatbuffers::FlatBufferBuilder;
 use messages_generated::scmoa::{
-    Message, MessageArgs, Payload, Prediction, StateUpdate, StateUpdateArgs,
-    Checkpoint, CheckpointArgs, Telemetry, TelemetryArgs,
+    Message, MessageArgs, Payload, StateUpdate, StateUpdateArgs,
+    Checkpoint, CheckpointArgs,
 };
 use std::collections::VecDeque;
 use std::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use tokio::net::windows::named_pipe::{ServerOptions, NamedPipeServer};
+use tokio::net::windows::named_pipe::ServerOptions;
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
     let scientist_pipe = r"\\.\pipe\scmoa_scientist";
-    let telemetry_pipe = r"\\.\pipe\scmoa_telemetry";
-
     let scientist_server = ServerOptions::new().first_pipe_instance(true).create(scientist_pipe)?;
-    let mut telemetry_server = ServerOptions::new().first_pipe_instance(true).create(telemetry_pipe)?;
 
     println!("Distiller: Waiting for Scientist connection...");
     scientist_server.connect().await?;
@@ -49,19 +45,15 @@ async fn main() -> io::Result<()> {
         if step_history.len() > 5 { step_history.pop_front(); }
 
         let current_seq: Vec<u8> = step_history.iter().cloned().collect();
-        let context = fetcher.query_context(&current_seq);
-        fetcher.record(current_seq, [env.gravity, env.friction]);
+        let context_params = fetcher.query_context(&current_seq);
+        fetcher.record(current_seq, env.params);
 
-        // Send Telemetry every 100 steps if someone is listening
-        if step_id % 100 == 0 {
-            // Check if telemetry client is connected (this is a bit complex with tokio's named pipes without a dedicated task)
-            // For now, we skip or just attempt a broadcast if we had a connection handle.
-        }
+        let context_vec_data = [context_params.gravity, context_params.friction];
 
         // Send State
         builder.reset();
         let state_vec = builder.create_vector(&[current_quantized_state]);
-        let context_vec = builder.create_vector(&context);
+        let context_vec = builder.create_vector(&context_vec_data);
         let su = StateUpdate::create(&mut builder, &StateUpdateArgs {
             state: Some(state_vec), step_id, reward, done, context: Some(context_vec),
         });
@@ -106,7 +98,10 @@ async fn main() -> io::Result<()> {
             }
         }
 
-        if done { env = Environment::new(); }
+        if done { 
+            env.state.position = (50.0, 50.0);
+            env.state.velocity = (0.0, 0.0);
+        }
         step_id += 1;
         tokio::time::sleep(std::time::Duration::from_millis(10)).await;
     }

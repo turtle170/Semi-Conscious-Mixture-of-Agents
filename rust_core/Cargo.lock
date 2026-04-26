@@ -51,6 +51,7 @@ name = "distiller"
 version = "0.1.0"
 dependencies = [
  "env",
+ "fetcher",
  "flatbuffers",
  "interprocess",
  "tokio",
@@ -88,6 +89,9 @@ dependencies = [
 [[package]]
 name = "fetcher"
 version = "0.1.0"
+dependencies = [
+ "env",
+]
 
 [[package]]
 name = "flatbuffers"
