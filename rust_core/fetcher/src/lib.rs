@@ -1,8 +1,11 @@
 use env::PhysicsParams;
 
+<<<<<<< HEAD
 #[cfg(target_arch = "x86_64")]
 use std::arch::x86_64::*;
 
+=======
+>>>>>>> main
 pub struct ContextFetcher {
     history: Vec<(Vec<u8>, PhysicsParams)>,
 }
@@ -24,14 +27,22 @@ impl ContextFetcher {
             return PhysicsParams { gravity: 9.8, friction: 0.99 };
         }
 
+<<<<<<< HEAD
         let mut best_match = self.history[0].1.clone();
+=======
+        let mut best_match = self.history[0].1;
+>>>>>>> main
         let mut min_distance = usize::MAX;
 
         for (hist_seq, params) in &self.history {
             let distance = self.hamming_distance(hist_seq, current_sequence);
             if distance < min_distance {
                 min_distance = distance;
+<<<<<<< HEAD
                 best_match = params.clone();
+=======
+                best_match = *params;
+>>>>>>> main
             }
         }
 
@@ -39,6 +50,7 @@ impl ContextFetcher {
     }
 
     fn hamming_distance(&self, a: &[u8], b: &[u8]) -> usize {
+<<<<<<< HEAD
         #[cfg(target_arch = "x86_64")]
         {
             #[cfg(target_feature = "avx10.1-256")]
@@ -145,6 +157,8 @@ impl ContextFetcher {
     }
 
     fn hamming_distance_scalar(&self, a: &[u8], b: &[u8]) -> usize {
+=======
+>>>>>>> main
         let len = a.len().min(b.len());
         let mut dist = 0;
         for i in 0..len {

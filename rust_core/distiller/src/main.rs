@@ -11,6 +11,7 @@ use messages_generated::scmoa::{
 use std::collections::VecDeque;
 use std::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+<<<<<<< HEAD
 
 #[cfg(windows)]
 use tokio::net::windows::named_pipe::ServerOptions;
@@ -31,6 +32,9 @@ mod mock_pipe {
 #[cfg(not(windows))]
 use mock_pipe::ServerOptions;
 
+=======
+use tokio::net::windows::named_pipe::ServerOptions;
+>>>>>>> main
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -120,7 +124,11 @@ async fn main() -> io::Result<()> {
             }
         }
 
+<<<<<<< HEAD
         if done {
+=======
+        if done { 
+>>>>>>> main
             env.state.position = (50.0, 50.0);
             env.state.velocity = (0.0, 0.0);
         }
