@@ -21,10 +21,10 @@ pub mod scmoa {
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_PAYLOAD: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_PAYLOAD: u8 = 7;
+pub const ENUM_MAX_PAYLOAD: u8 = 8;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PAYLOAD: [Payload; 8] = [
+pub const ENUM_VALUES_PAYLOAD: [Payload; 9] = [
   Payload::NONE,
   Payload::StateUpdate,
   Payload::Action,
@@ -33,6 +33,7 @@ pub const ENUM_VALUES_PAYLOAD: [Payload; 8] = [
   Payload::TopologyMutation,
   Payload::Checkpoint,
   Payload::Telemetry,
+  Payload::InferenceResult,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -48,9 +49,10 @@ impl Payload {
   pub const TopologyMutation: Self = Self(5);
   pub const Checkpoint: Self = Self(6);
   pub const Telemetry: Self = Self(7);
+  pub const InferenceResult: Self = Self(8);
 
   pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 7;
+  pub const ENUM_MAX: u8 = 8;
   pub const ENUM_VALUES: &'static [Self] = &[
     Self::NONE,
     Self::StateUpdate,
@@ -60,6 +62,7 @@ impl Payload {
     Self::TopologyMutation,
     Self::Checkpoint,
     Self::Telemetry,
+    Self::InferenceResult,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
@@ -72,6 +75,7 @@ impl Payload {
       Self::TopologyMutation => Some("TopologyMutation"),
       Self::Checkpoint => Some("Checkpoint"),
       Self::Telemetry => Some("Telemetry"),
+      Self::InferenceResult => Some("InferenceResult"),
       _ => None,
     }
   }
@@ -1046,6 +1050,137 @@ impl core::fmt::Debug for Telemetry<'_> {
       ds.finish()
   }
 }
+pub enum InferenceResultOffset {}
+#[derive(Copy, Clone, PartialEq)]
+
+pub struct InferenceResult<'a> {
+  pub _tab: flatbuffers::Table<'a>,
+}
+
+impl<'a> flatbuffers::Follow<'a> for InferenceResult<'a> {
+  type Inner = InferenceResult<'a>;
+  #[inline]
+  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
+    Self { _tab: flatbuffers::Table::new(buf, loc) }
+  }
+}
+
+impl<'a> InferenceResult<'a> {
+  pub const VT_PREDICTED_STATE: flatbuffers::VOffsetT = 4;
+  pub const VT_ACTION: flatbuffers::VOffsetT = 6;
+  pub const VT_STEP_ID: flatbuffers::VOffsetT = 8;
+
+  #[inline]
+  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
+    InferenceResult { _tab: table }
+  }
+  #[allow(unused_mut)]
+  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
+    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
+    args: &'args InferenceResultArgs<'args>
+  ) -> flatbuffers::WIPOffset<InferenceResult<'bldr>> {
+    let mut builder = InferenceResultBuilder::new(_fbb);
+    builder.add_step_id(args.step_id);
+    if let Some(x) = args.action { builder.add_action(x); }
+    if let Some(x) = args.predicted_state { builder.add_predicted_state(x); }
+    builder.finish()
+  }
+
+
+  #[inline]
+  pub fn predicted_state(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(InferenceResult::VT_PREDICTED_STATE, None)}
+  }
+  #[inline]
+  pub fn action(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(InferenceResult::VT_ACTION, None)}
+  }
+  #[inline]
+  pub fn step_id(&self) -> u64 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u64>(InferenceResult::VT_STEP_ID, Some(0)).unwrap()}
+  }
+}
+
+impl flatbuffers::Verifiable for InferenceResult<'_> {
+  #[inline]
+  fn run_verifier(
+    v: &mut flatbuffers::Verifier, pos: usize
+  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
+    use self::flatbuffers::Verifiable;
+    v.visit_table(pos)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("predicted_state", Self::VT_PREDICTED_STATE, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("action", Self::VT_ACTION, false)?
+     .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
+     .finish();
+    Ok(())
+  }
+}
+pub struct InferenceResultArgs<'a> {
+    pub predicted_state: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub action: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+    pub step_id: u64,
+}
+impl<'a> Default for InferenceResultArgs<'a> {
+  #[inline]
+  fn default() -> Self {
+    InferenceResultArgs {
+      predicted_state: None,
+      action: None,
+      step_id: 0,
+    }
+  }
+}
+
+pub struct InferenceResultBuilder<'a: 'b, 'b> {
+  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
+  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
+}
+impl<'a: 'b, 'b> InferenceResultBuilder<'a, 'b> {
+  #[inline]
+  pub fn add_predicted_state(&mut self, predicted_state: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(InferenceResult::VT_PREDICTED_STATE, predicted_state);
+  }
+  #[inline]
+  pub fn add_action(&mut self, action: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(InferenceResult::VT_ACTION, action);
+  }
+  #[inline]
+  pub fn add_step_id(&mut self, step_id: u64) {
+    self.fbb_.push_slot::<u64>(InferenceResult::VT_STEP_ID, step_id, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> InferenceResultBuilder<'a, 'b> {
+    let start = _fbb.start_table();
+    InferenceResultBuilder {
+      fbb_: _fbb,
+      start_: start,
+    }
+  }
+  #[inline]
+  pub fn finish(self) -> flatbuffers::WIPOffset<InferenceResult<'a>> {
+    let o = self.fbb_.end_table(self.start_);
+    flatbuffers::WIPOffset::new(o.value())
+  }
+}
+
+impl core::fmt::Debug for InferenceResult<'_> {
+  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+    let mut ds = f.debug_struct("InferenceResult");
+      ds.field("predicted_state", &self.predicted_state());
+      ds.field("action", &self.action());
+      ds.field("step_id", &self.step_id());
+      ds.finish()
+  }
+}
 pub enum MessageOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -1200,6 +1335,21 @@ impl<'a> Message<'a> {
     }
   }
 
+  #[inline]
+  #[allow(non_snake_case)]
+  pub fn payload_as_inference_result(&self) -> Option<InferenceResult<'a>> {
+    if self.payload_type() == Payload::InferenceResult {
+      self.payload().map(|t| {
+       // Safety:
+       // Created from a valid Table for this object
+       // Which contains a valid union in this slot
+       unsafe { InferenceResult::init_from_table(t) }
+     })
+    } else {
+      None
+    }
+  }
+
 }
 
 impl flatbuffers::Verifiable for Message<'_> {
@@ -1218,6 +1368,7 @@ impl flatbuffers::Verifiable for Message<'_> {
           Payload::TopologyMutation => v.verify_union_variant::<flatbuffers::ForwardsUOffset<TopologyMutation>>("Payload::TopologyMutation", pos),
           Payload::Checkpoint => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Checkpoint>>("Payload::Checkpoint", pos),
           Payload::Telemetry => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Telemetry>>("Payload::Telemetry", pos),
+          Payload::InferenceResult => v.verify_union_variant::<flatbuffers::ForwardsUOffset<InferenceResult>>("Payload::InferenceResult", pos),
           _ => Ok(()),
         }
      })?
@@ -1316,6 +1467,13 @@ impl core::fmt::Debug for Message<'_> {
         },
         Payload::Telemetry => {
           if let Some(x) = self.payload_as_telemetry() {
+            ds.field("payload", &x)
+          } else {
+            ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
+          }
+        },
+        Payload::InferenceResult => {
+          if let Some(x) = self.payload_as_inference_result() {
             ds.field("payload", &x)
           } else {
             ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")

@@ -11,3 +11,4 @@ class Payload(object):
     TopologyMutation = 5
     Checkpoint = 6
     Telemetry = 7
+    InferenceResult = 8

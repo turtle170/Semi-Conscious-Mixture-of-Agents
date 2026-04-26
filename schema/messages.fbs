@@ -42,6 +42,12 @@ table Telemetry {
   step_id: ulong;
 }
 
+table InferenceResult {
+  predicted_state: [uint8];
+  action: [uint8];
+  step_id: uint64;
+}
+
 union Payload {
   StateUpdate,
   Action,
@@ -49,7 +55,8 @@ union Payload {
   RewardError,
   TopologyMutation,
   Checkpoint,
-  Telemetry
+  Telemetry,
+  InferenceResult
 }
 
 table Message {
