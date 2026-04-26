@@ -11,7 +11,30 @@ use messages_generated::scmoa::{
 use std::collections::VecDeque;
 use std::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
+<<<<<<< HEAD
+
+#[cfg(windows)]
 use tokio::net::windows::named_pipe::ServerOptions;
+
+#[cfg(not(windows))]
+mod mock_pipe {
+    pub struct ServerOptions {}
+    impl ServerOptions {
+        pub fn new() -> Self { Self {} }
+        pub fn first_pipe_instance(&mut self, _: bool) -> &mut Self { self }
+        pub fn create(&self, _: &str) -> std::io::Result<tokio::io::DuplexStream> {
+            let (client, server) = tokio::io::duplex(1024);
+            // Just drop the client and return the server so it compiles
+            Ok(server)
+        }
+    }
+}
+#[cfg(not(windows))]
+use mock_pipe::ServerOptions;
+
+=======
+use tokio::net::windows::named_pipe::ServerOptions;
+>>>>>>> main
 
 #[tokio::main]
 async fn main() -> io::Result<()> {
@@ -19,7 +42,10 @@ async fn main() -> io::Result<()> {
     let scientist_server = ServerOptions::new().first_pipe_instance(true).create(scientist_pipe)?;
 
     println!("Distiller: Waiting for Scientist connection...");
+
+    #[cfg(windows)]
     scientist_server.connect().await?;
+
     println!("Distiller: Scientist connected!");
 
     let mut env = Environment::new();
@@ -98,7 +124,11 @@ async fn main() -> io::Result<()> {
             }
         }
 
+<<<<<<< HEAD
+        if done {
+=======
         if done { 
+>>>>>>> main
             env.state.position = (50.0, 50.0);
             env.state.velocity = (0.0, 0.0);
         }
