@@ -4,11 +4,7 @@
 
 class Payload(object):
     NONE = 0
-    StateUpdate = 1
-    Action = 2
-    Prediction = 3
-    RewardError = 4
-    TopologyMutation = 5
-    Checkpoint = 6
-    Telemetry = 7
-    InferenceResult = 8
+    HivemindUpdate = 1
+    HivemindResult = 2
+    TopologyMutation = 3
+    Checkpoint = 4

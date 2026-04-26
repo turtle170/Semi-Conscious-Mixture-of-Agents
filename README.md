@@ -1,23 +1,22 @@
-# Project Aether: SCMoA (Semi-Conscious Mixture of Agents)
+# Project Aether: SCMoA Gen 2 (Hivemind)
 
-Project Aether is a Reinforcement Learning (RL) research framework implementing the **Semi-Conscious Mixture of Agents (SCMoA)** architecture. It explores the behavior and evolution of AI agents constrained to communicate via extreme low-bandwidth channels (6-bit quantized signals) while operating in a high-fidelity physics environment.
+Project Aether is a Reinforcement Learning (RL) research framework implementing the **Semi-Conscious Mixture of Agents (SCMoA)** architecture. In Gen 2, we introduce the **Hivemind** protocol.
 
-## 🚀 Architecture Overview
+## 🚀 Hivemind Architecture
 
-SCMoA is built on a hybrid, high-performance stack designed for low-latency feedback loops and evolutionary neural topology:
+Gen 2 scales the architecture into a massively parallel, multi-specialist system:
 
-*   **The Scientist (Python/PyTorch):** A Transformer-based world model with Cross-Attention. It ingests 6-bit state sequences and historical physics context to predict future environment states.
-*   **The Worker (Python/PyTorch):** An Actor-Critic RL policy (PPO-based) that acts as the "probe" in the environment, making decisions based on the Scientist's internal latent representations.
-*   **The Distiller (Rust):** The high-speed orchestrator. It manages the physics simulation, performs 6-bit quantization, handles IPC via Windows Named Pipes, and triggers "Topology Mutations" (evolutionary growth) based on performance telemetry.
-*   **Mass Context Fetcher (Rust):** A vector search memory system that retrieves high-dimensional physics parameters (gravity, friction) based on 6-bit sequence similarity to resolve environment ambiguity.
+*   **Massively Parallel Shards:** The Rust core spawns dozens of parallel physics environments (shards), each with randomized parameters.
+*   **The Hivemind Agent (Python/PyTorch):** A unified Transformer backbone that processes batches of states from all shards. Experiences are shared instantly in a unified latent space.
+*   **Mixture of Specialists:** Different neural "heads" specialize in specific physics regimes (e.g., high-gravity vs. low-friction).
+*   **Intelligent Routing:** The Distiller acts as a high-speed router, analyzing the physics of each shard and directing its 6-bit state to the most qualified specialist head.
 
-## 🛠 Tech Stack
+## 🛠 Tech Stack (Gen 2 Optimized)
 
-*   **Core Logic:** [Rust](https://www.rust-lang.org/) (Nightly)
-*   **AI/ML:** [PyTorch](https://pytorch.org/) (CPU-optimized)
-*   **Serialization:** [FlatBuffers](https://google.github.io/flatbuffers/) (Zero-copy IPC)
-*   **IPC:** Windows Named Pipes
-*   **Concurrency:** [Tokio](https://tokio.rs/) (Async Rust)
+*   **Batch IPC:** Hivemind protocol batches dozens of shard updates into single zero-copy FlatBuffer messages.
+*   **SIMD Memory Search:** Rust core uses explicit AVX-512/AVX2 branching for ultra-fast historical context retrieval.
+*   **JIT Inference:** Python agents utilize `torch.compile` for hardware-specific optimizations (AVX-VNNI).
+*   **High-Frequency Orchestration:** The system maintains a 200Hz+ loop across 32+ parallel shards.
 
 ## 📁 Project Structure
 

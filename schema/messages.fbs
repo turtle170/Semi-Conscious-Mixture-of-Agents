@@ -1,26 +1,27 @@
 namespace scmoa;
 
-table StateUpdate {
-  state: [uint8];
-  step_id: uint64;
+table ShardUpdate {
+  shard_id: uint32;
+  state: uint8;
   reward: float32;
   done: bool;
-  context: [float32]; 
+  context: [float32];
+  specialist_id: uint8; // The "Router" index chosen by the Distiller
 }
 
-table Action {
-  action: [uint8];
+table HivemindUpdate {
+  shards: [ShardUpdate];
   step_id: uint64;
 }
 
-table Prediction {
-  predicted_state: [uint8];
-  step_id: uint64;
+table ShardResult {
+  shard_id: uint32;
+  predicted_state: uint8;
+  action: uint8;
 }
 
-table RewardError {
-  prediction_error: float32;
-  reward: float32;
+table HivemindResult {
+  results: [ShardResult];
   step_id: uint64;
 }
 
@@ -34,29 +35,11 @@ table Checkpoint {
   step_id: uint64;
 }
 
-table Telemetry {
-  gravity: float32;
-  friction: float32;
-  reward: float32;
-  entropy: float32;
-  step_id: ulong;
-}
-
-table InferenceResult {
-  predicted_state: [uint8];
-  action: [uint8];
-  step_id: uint64;
-}
-
 union Payload {
-  StateUpdate,
-  Action,
-  Prediction,
-  RewardError,
+  HivemindUpdate,
+  HivemindResult,
   TopologyMutation,
-  Checkpoint,
-  Telemetry,
-  InferenceResult
+  Checkpoint
 }
 
 table Message {

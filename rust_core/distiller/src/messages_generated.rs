@@ -21,19 +21,15 @@ pub mod scmoa {
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 pub const ENUM_MIN_PAYLOAD: u8 = 0;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
-pub const ENUM_MAX_PAYLOAD: u8 = 8;
+pub const ENUM_MAX_PAYLOAD: u8 = 4;
 #[deprecated(since = "2.0.0", note = "Use associated constants instead. This will no longer be generated in 2021.")]
 #[allow(non_camel_case_types)]
-pub const ENUM_VALUES_PAYLOAD: [Payload; 9] = [
+pub const ENUM_VALUES_PAYLOAD: [Payload; 5] = [
   Payload::NONE,
-  Payload::StateUpdate,
-  Payload::Action,
-  Payload::Prediction,
-  Payload::RewardError,
+  Payload::HivemindUpdate,
+  Payload::HivemindResult,
   Payload::TopologyMutation,
   Payload::Checkpoint,
-  Payload::Telemetry,
-  Payload::InferenceResult,
 ];
 
 #[derive(Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Default)]
@@ -42,40 +38,28 @@ pub struct Payload(pub u8);
 #[allow(non_upper_case_globals)]
 impl Payload {
   pub const NONE: Self = Self(0);
-  pub const StateUpdate: Self = Self(1);
-  pub const Action: Self = Self(2);
-  pub const Prediction: Self = Self(3);
-  pub const RewardError: Self = Self(4);
-  pub const TopologyMutation: Self = Self(5);
-  pub const Checkpoint: Self = Self(6);
-  pub const Telemetry: Self = Self(7);
-  pub const InferenceResult: Self = Self(8);
+  pub const HivemindUpdate: Self = Self(1);
+  pub const HivemindResult: Self = Self(2);
+  pub const TopologyMutation: Self = Self(3);
+  pub const Checkpoint: Self = Self(4);
 
   pub const ENUM_MIN: u8 = 0;
-  pub const ENUM_MAX: u8 = 8;
+  pub const ENUM_MAX: u8 = 4;
   pub const ENUM_VALUES: &'static [Self] = &[
     Self::NONE,
-    Self::StateUpdate,
-    Self::Action,
-    Self::Prediction,
-    Self::RewardError,
+    Self::HivemindUpdate,
+    Self::HivemindResult,
     Self::TopologyMutation,
     Self::Checkpoint,
-    Self::Telemetry,
-    Self::InferenceResult,
   ];
   /// Returns the variant's name or "" if unknown.
   pub fn variant_name(self) -> Option<&'static str> {
     match self {
       Self::NONE => Some("NONE"),
-      Self::StateUpdate => Some("StateUpdate"),
-      Self::Action => Some("Action"),
-      Self::Prediction => Some("Prediction"),
-      Self::RewardError => Some("RewardError"),
+      Self::HivemindUpdate => Some("HivemindUpdate"),
+      Self::HivemindResult => Some("HivemindResult"),
       Self::TopologyMutation => Some("TopologyMutation"),
       Self::Checkpoint => Some("Checkpoint"),
-      Self::Telemetry => Some("Telemetry"),
-      Self::InferenceResult => Some("InferenceResult"),
       _ => None,
     }
   }
@@ -133,526 +117,543 @@ impl<'a> flatbuffers::Verifiable for Payload {
 impl flatbuffers::SimpleToVerifyInSlice for Payload {}
 pub struct PayloadUnionTableOffset {}
 
-pub enum StateUpdateOffset {}
+pub enum ShardUpdateOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct StateUpdate<'a> {
+pub struct ShardUpdate<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for StateUpdate<'a> {
-  type Inner = StateUpdate<'a>;
+impl<'a> flatbuffers::Follow<'a> for ShardUpdate<'a> {
+  type Inner = ShardUpdate<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> StateUpdate<'a> {
-  pub const VT_STATE: flatbuffers::VOffsetT = 4;
-  pub const VT_STEP_ID: flatbuffers::VOffsetT = 6;
+impl<'a> ShardUpdate<'a> {
+  pub const VT_SHARD_ID: flatbuffers::VOffsetT = 4;
+  pub const VT_STATE: flatbuffers::VOffsetT = 6;
   pub const VT_REWARD: flatbuffers::VOffsetT = 8;
   pub const VT_DONE: flatbuffers::VOffsetT = 10;
   pub const VT_CONTEXT: flatbuffers::VOffsetT = 12;
+  pub const VT_SPECIALIST_ID: flatbuffers::VOffsetT = 14;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    StateUpdate { _tab: table }
+    ShardUpdate { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-    args: &'args StateUpdateArgs<'args>
-  ) -> flatbuffers::WIPOffset<StateUpdate<'bldr>> {
-    let mut builder = StateUpdateBuilder::new(_fbb);
-    builder.add_step_id(args.step_id);
+    args: &'args ShardUpdateArgs<'args>
+  ) -> flatbuffers::WIPOffset<ShardUpdate<'bldr>> {
+    let mut builder = ShardUpdateBuilder::new(_fbb);
     if let Some(x) = args.context { builder.add_context(x); }
     builder.add_reward(args.reward);
-    if let Some(x) = args.state { builder.add_state(x); }
+    builder.add_shard_id(args.shard_id);
+    builder.add_specialist_id(args.specialist_id);
     builder.add_done(args.done);
+    builder.add_state(args.state);
     builder.finish()
   }
 
 
   #[inline]
-  pub fn state(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+  pub fn shard_id(&self) -> u32 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(StateUpdate::VT_STATE, None)}
+    unsafe { self._tab.get::<u32>(ShardUpdate::VT_SHARD_ID, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn step_id(&self) -> u64 {
+  pub fn state(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u64>(StateUpdate::VT_STEP_ID, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u8>(ShardUpdate::VT_STATE, Some(0)).unwrap()}
   }
   #[inline]
   pub fn reward(&self) -> f32 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(StateUpdate::VT_REWARD, Some(0.0)).unwrap()}
+    unsafe { self._tab.get::<f32>(ShardUpdate::VT_REWARD, Some(0.0)).unwrap()}
   }
   #[inline]
   pub fn done(&self) -> bool {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<bool>(StateUpdate::VT_DONE, Some(false)).unwrap()}
+    unsafe { self._tab.get::<bool>(ShardUpdate::VT_DONE, Some(false)).unwrap()}
   }
   #[inline]
   pub fn context(&self) -> Option<flatbuffers::Vector<'a, f32>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f32>>>(StateUpdate::VT_CONTEXT, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, f32>>>(ShardUpdate::VT_CONTEXT, None)}
+  }
+  #[inline]
+  pub fn specialist_id(&self) -> u8 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u8>(ShardUpdate::VT_SPECIALIST_ID, Some(0)).unwrap()}
   }
 }
 
-impl flatbuffers::Verifiable for StateUpdate<'_> {
+impl flatbuffers::Verifiable for ShardUpdate<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("state", Self::VT_STATE, false)?
-     .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
+     .visit_field::<u32>("shard_id", Self::VT_SHARD_ID, false)?
+     .visit_field::<u8>("state", Self::VT_STATE, false)?
      .visit_field::<f32>("reward", Self::VT_REWARD, false)?
      .visit_field::<bool>("done", Self::VT_DONE, false)?
      .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, f32>>>("context", Self::VT_CONTEXT, false)?
+     .visit_field::<u8>("specialist_id", Self::VT_SPECIALIST_ID, false)?
      .finish();
     Ok(())
   }
 }
-pub struct StateUpdateArgs<'a> {
-    pub state: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub step_id: u64,
+pub struct ShardUpdateArgs<'a> {
+    pub shard_id: u32,
+    pub state: u8,
     pub reward: f32,
     pub done: bool,
     pub context: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, f32>>>,
+    pub specialist_id: u8,
 }
-impl<'a> Default for StateUpdateArgs<'a> {
+impl<'a> Default for ShardUpdateArgs<'a> {
   #[inline]
   fn default() -> Self {
-    StateUpdateArgs {
-      state: None,
-      step_id: 0,
+    ShardUpdateArgs {
+      shard_id: 0,
+      state: 0,
       reward: 0.0,
       done: false,
       context: None,
+      specialist_id: 0,
     }
   }
 }
 
-pub struct StateUpdateBuilder<'a: 'b, 'b> {
+pub struct ShardUpdateBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> StateUpdateBuilder<'a, 'b> {
+impl<'a: 'b, 'b> ShardUpdateBuilder<'a, 'b> {
   #[inline]
-  pub fn add_state(&mut self, state: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StateUpdate::VT_STATE, state);
+  pub fn add_shard_id(&mut self, shard_id: u32) {
+    self.fbb_.push_slot::<u32>(ShardUpdate::VT_SHARD_ID, shard_id, 0);
   }
   #[inline]
-  pub fn add_step_id(&mut self, step_id: u64) {
-    self.fbb_.push_slot::<u64>(StateUpdate::VT_STEP_ID, step_id, 0);
+  pub fn add_state(&mut self, state: u8) {
+    self.fbb_.push_slot::<u8>(ShardUpdate::VT_STATE, state, 0);
   }
   #[inline]
   pub fn add_reward(&mut self, reward: f32) {
-    self.fbb_.push_slot::<f32>(StateUpdate::VT_REWARD, reward, 0.0);
+    self.fbb_.push_slot::<f32>(ShardUpdate::VT_REWARD, reward, 0.0);
   }
   #[inline]
   pub fn add_done(&mut self, done: bool) {
-    self.fbb_.push_slot::<bool>(StateUpdate::VT_DONE, done, false);
+    self.fbb_.push_slot::<bool>(ShardUpdate::VT_DONE, done, false);
   }
   #[inline]
   pub fn add_context(&mut self, context: flatbuffers::WIPOffset<flatbuffers::Vector<'b , f32>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(StateUpdate::VT_CONTEXT, context);
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(ShardUpdate::VT_CONTEXT, context);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> StateUpdateBuilder<'a, 'b> {
+  pub fn add_specialist_id(&mut self, specialist_id: u8) {
+    self.fbb_.push_slot::<u8>(ShardUpdate::VT_SPECIALIST_ID, specialist_id, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ShardUpdateBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    StateUpdateBuilder {
+    ShardUpdateBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<StateUpdate<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<ShardUpdate<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for StateUpdate<'_> {
+impl core::fmt::Debug for ShardUpdate<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("StateUpdate");
+    let mut ds = f.debug_struct("ShardUpdate");
+      ds.field("shard_id", &self.shard_id());
       ds.field("state", &self.state());
-      ds.field("step_id", &self.step_id());
       ds.field("reward", &self.reward());
       ds.field("done", &self.done());
       ds.field("context", &self.context());
+      ds.field("specialist_id", &self.specialist_id());
       ds.finish()
   }
 }
-pub enum ActionOffset {}
+pub enum HivemindUpdateOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct Action<'a> {
+pub struct HivemindUpdate<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for Action<'a> {
-  type Inner = Action<'a>;
+impl<'a> flatbuffers::Follow<'a> for HivemindUpdate<'a> {
+  type Inner = HivemindUpdate<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> Action<'a> {
-  pub const VT_ACTION: flatbuffers::VOffsetT = 4;
+impl<'a> HivemindUpdate<'a> {
+  pub const VT_SHARDS: flatbuffers::VOffsetT = 4;
   pub const VT_STEP_ID: flatbuffers::VOffsetT = 6;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    Action { _tab: table }
+    HivemindUpdate { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-    args: &'args ActionArgs<'args>
-  ) -> flatbuffers::WIPOffset<Action<'bldr>> {
-    let mut builder = ActionBuilder::new(_fbb);
+    args: &'args HivemindUpdateArgs<'args>
+  ) -> flatbuffers::WIPOffset<HivemindUpdate<'bldr>> {
+    let mut builder = HivemindUpdateBuilder::new(_fbb);
     builder.add_step_id(args.step_id);
-    if let Some(x) = args.action { builder.add_action(x); }
+    if let Some(x) = args.shards { builder.add_shards(x); }
     builder.finish()
   }
 
 
   #[inline]
-  pub fn action(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+  pub fn shards(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ShardUpdate<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(Action::VT_ACTION, None)}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ShardUpdate>>>>(HivemindUpdate::VT_SHARDS, None)}
   }
   #[inline]
   pub fn step_id(&self) -> u64 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u64>(Action::VT_STEP_ID, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u64>(HivemindUpdate::VT_STEP_ID, Some(0)).unwrap()}
   }
 }
 
-impl flatbuffers::Verifiable for Action<'_> {
+impl flatbuffers::Verifiable for HivemindUpdate<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("action", Self::VT_ACTION, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<ShardUpdate>>>>("shards", Self::VT_SHARDS, false)?
      .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
      .finish();
     Ok(())
   }
 }
-pub struct ActionArgs<'a> {
-    pub action: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
+pub struct HivemindUpdateArgs<'a> {
+    pub shards: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ShardUpdate<'a>>>>>,
     pub step_id: u64,
 }
-impl<'a> Default for ActionArgs<'a> {
+impl<'a> Default for HivemindUpdateArgs<'a> {
   #[inline]
   fn default() -> Self {
-    ActionArgs {
-      action: None,
+    HivemindUpdateArgs {
+      shards: None,
       step_id: 0,
     }
   }
 }
 
-pub struct ActionBuilder<'a: 'b, 'b> {
+pub struct HivemindUpdateBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> ActionBuilder<'a, 'b> {
+impl<'a: 'b, 'b> HivemindUpdateBuilder<'a, 'b> {
   #[inline]
-  pub fn add_action(&mut self, action: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Action::VT_ACTION, action);
+  pub fn add_shards(&mut self, shards: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<ShardUpdate<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(HivemindUpdate::VT_SHARDS, shards);
   }
   #[inline]
   pub fn add_step_id(&mut self, step_id: u64) {
-    self.fbb_.push_slot::<u64>(Action::VT_STEP_ID, step_id, 0);
+    self.fbb_.push_slot::<u64>(HivemindUpdate::VT_STEP_ID, step_id, 0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ActionBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> HivemindUpdateBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    ActionBuilder {
+    HivemindUpdateBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Action<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<HivemindUpdate<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for Action<'_> {
+impl core::fmt::Debug for HivemindUpdate<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("Action");
-      ds.field("action", &self.action());
+    let mut ds = f.debug_struct("HivemindUpdate");
+      ds.field("shards", &self.shards());
       ds.field("step_id", &self.step_id());
       ds.finish()
   }
 }
-pub enum PredictionOffset {}
+pub enum ShardResultOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct Prediction<'a> {
+pub struct ShardResult<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for Prediction<'a> {
-  type Inner = Prediction<'a>;
+impl<'a> flatbuffers::Follow<'a> for ShardResult<'a> {
+  type Inner = ShardResult<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> Prediction<'a> {
-  pub const VT_PREDICTED_STATE: flatbuffers::VOffsetT = 4;
-  pub const VT_STEP_ID: flatbuffers::VOffsetT = 6;
+impl<'a> ShardResult<'a> {
+  pub const VT_SHARD_ID: flatbuffers::VOffsetT = 4;
+  pub const VT_PREDICTED_STATE: flatbuffers::VOffsetT = 6;
+  pub const VT_ACTION: flatbuffers::VOffsetT = 8;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    Prediction { _tab: table }
+    ShardResult { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-    args: &'args PredictionArgs<'args>
-  ) -> flatbuffers::WIPOffset<Prediction<'bldr>> {
-    let mut builder = PredictionBuilder::new(_fbb);
-    builder.add_step_id(args.step_id);
-    if let Some(x) = args.predicted_state { builder.add_predicted_state(x); }
+    args: &'args ShardResultArgs
+  ) -> flatbuffers::WIPOffset<ShardResult<'bldr>> {
+    let mut builder = ShardResultBuilder::new(_fbb);
+    builder.add_shard_id(args.shard_id);
+    builder.add_action(args.action);
+    builder.add_predicted_state(args.predicted_state);
     builder.finish()
   }
 
 
   #[inline]
-  pub fn predicted_state(&self) -> Option<flatbuffers::Vector<'a, u8>> {
+  pub fn shard_id(&self) -> u32 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(Prediction::VT_PREDICTED_STATE, None)}
+    unsafe { self._tab.get::<u32>(ShardResult::VT_SHARD_ID, Some(0)).unwrap()}
   }
   #[inline]
-  pub fn step_id(&self) -> u64 {
+  pub fn predicted_state(&self) -> u8 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u64>(Prediction::VT_STEP_ID, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u8>(ShardResult::VT_PREDICTED_STATE, Some(0)).unwrap()}
+  }
+  #[inline]
+  pub fn action(&self) -> u8 {
+    // Safety:
+    // Created from valid Table for this object
+    // which contains a valid value in this slot
+    unsafe { self._tab.get::<u8>(ShardResult::VT_ACTION, Some(0)).unwrap()}
   }
 }
 
-impl flatbuffers::Verifiable for Prediction<'_> {
+impl flatbuffers::Verifiable for ShardResult<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("predicted_state", Self::VT_PREDICTED_STATE, false)?
-     .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
+     .visit_field::<u32>("shard_id", Self::VT_SHARD_ID, false)?
+     .visit_field::<u8>("predicted_state", Self::VT_PREDICTED_STATE, false)?
+     .visit_field::<u8>("action", Self::VT_ACTION, false)?
      .finish();
     Ok(())
   }
 }
-pub struct PredictionArgs<'a> {
-    pub predicted_state: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub step_id: u64,
+pub struct ShardResultArgs {
+    pub shard_id: u32,
+    pub predicted_state: u8,
+    pub action: u8,
 }
-impl<'a> Default for PredictionArgs<'a> {
+impl<'a> Default for ShardResultArgs {
   #[inline]
   fn default() -> Self {
-    PredictionArgs {
-      predicted_state: None,
-      step_id: 0,
+    ShardResultArgs {
+      shard_id: 0,
+      predicted_state: 0,
+      action: 0,
     }
   }
 }
 
-pub struct PredictionBuilder<'a: 'b, 'b> {
+pub struct ShardResultBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> PredictionBuilder<'a, 'b> {
+impl<'a: 'b, 'b> ShardResultBuilder<'a, 'b> {
   #[inline]
-  pub fn add_predicted_state(&mut self, predicted_state: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(Prediction::VT_PREDICTED_STATE, predicted_state);
+  pub fn add_shard_id(&mut self, shard_id: u32) {
+    self.fbb_.push_slot::<u32>(ShardResult::VT_SHARD_ID, shard_id, 0);
   }
   #[inline]
-  pub fn add_step_id(&mut self, step_id: u64) {
-    self.fbb_.push_slot::<u64>(Prediction::VT_STEP_ID, step_id, 0);
+  pub fn add_predicted_state(&mut self, predicted_state: u8) {
+    self.fbb_.push_slot::<u8>(ShardResult::VT_PREDICTED_STATE, predicted_state, 0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> PredictionBuilder<'a, 'b> {
+  pub fn add_action(&mut self, action: u8) {
+    self.fbb_.push_slot::<u8>(ShardResult::VT_ACTION, action, 0);
+  }
+  #[inline]
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> ShardResultBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    PredictionBuilder {
+    ShardResultBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Prediction<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<ShardResult<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for Prediction<'_> {
+impl core::fmt::Debug for ShardResult<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("Prediction");
+    let mut ds = f.debug_struct("ShardResult");
+      ds.field("shard_id", &self.shard_id());
       ds.field("predicted_state", &self.predicted_state());
-      ds.field("step_id", &self.step_id());
+      ds.field("action", &self.action());
       ds.finish()
   }
 }
-pub enum RewardErrorOffset {}
+pub enum HivemindResultOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
-pub struct RewardError<'a> {
+pub struct HivemindResult<'a> {
   pub _tab: flatbuffers::Table<'a>,
 }
 
-impl<'a> flatbuffers::Follow<'a> for RewardError<'a> {
-  type Inner = RewardError<'a>;
+impl<'a> flatbuffers::Follow<'a> for HivemindResult<'a> {
+  type Inner = HivemindResult<'a>;
   #[inline]
   unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
     Self { _tab: flatbuffers::Table::new(buf, loc) }
   }
 }
 
-impl<'a> RewardError<'a> {
-  pub const VT_PREDICTION_ERROR: flatbuffers::VOffsetT = 4;
-  pub const VT_REWARD: flatbuffers::VOffsetT = 6;
-  pub const VT_STEP_ID: flatbuffers::VOffsetT = 8;
+impl<'a> HivemindResult<'a> {
+  pub const VT_RESULTS: flatbuffers::VOffsetT = 4;
+  pub const VT_STEP_ID: flatbuffers::VOffsetT = 6;
 
   #[inline]
   pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    RewardError { _tab: table }
+    HivemindResult { _tab: table }
   }
   #[allow(unused_mut)]
   pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
     _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-    args: &'args RewardErrorArgs
-  ) -> flatbuffers::WIPOffset<RewardError<'bldr>> {
-    let mut builder = RewardErrorBuilder::new(_fbb);
+    args: &'args HivemindResultArgs<'args>
+  ) -> flatbuffers::WIPOffset<HivemindResult<'bldr>> {
+    let mut builder = HivemindResultBuilder::new(_fbb);
     builder.add_step_id(args.step_id);
-    builder.add_reward(args.reward);
-    builder.add_prediction_error(args.prediction_error);
+    if let Some(x) = args.results { builder.add_results(x); }
     builder.finish()
   }
 
 
   #[inline]
-  pub fn prediction_error(&self) -> f32 {
+  pub fn results(&self) -> Option<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ShardResult<'a>>>> {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(RewardError::VT_PREDICTION_ERROR, Some(0.0)).unwrap()}
-  }
-  #[inline]
-  pub fn reward(&self) -> f32 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(RewardError::VT_REWARD, Some(0.0)).unwrap()}
+    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ShardResult>>>>(HivemindResult::VT_RESULTS, None)}
   }
   #[inline]
   pub fn step_id(&self) -> u64 {
     // Safety:
     // Created from valid Table for this object
     // which contains a valid value in this slot
-    unsafe { self._tab.get::<u64>(RewardError::VT_STEP_ID, Some(0)).unwrap()}
+    unsafe { self._tab.get::<u64>(HivemindResult::VT_STEP_ID, Some(0)).unwrap()}
   }
 }
 
-impl flatbuffers::Verifiable for RewardError<'_> {
+impl flatbuffers::Verifiable for HivemindResult<'_> {
   #[inline]
   fn run_verifier(
     v: &mut flatbuffers::Verifier, pos: usize
   ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
     use self::flatbuffers::Verifiable;
     v.visit_table(pos)?
-     .visit_field::<f32>("prediction_error", Self::VT_PREDICTION_ERROR, false)?
-     .visit_field::<f32>("reward", Self::VT_REWARD, false)?
+     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, flatbuffers::ForwardsUOffset<ShardResult>>>>("results", Self::VT_RESULTS, false)?
      .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
      .finish();
     Ok(())
   }
 }
-pub struct RewardErrorArgs {
-    pub prediction_error: f32,
-    pub reward: f32,
+pub struct HivemindResultArgs<'a> {
+    pub results: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, flatbuffers::ForwardsUOffset<ShardResult<'a>>>>>,
     pub step_id: u64,
 }
-impl<'a> Default for RewardErrorArgs {
+impl<'a> Default for HivemindResultArgs<'a> {
   #[inline]
   fn default() -> Self {
-    RewardErrorArgs {
-      prediction_error: 0.0,
-      reward: 0.0,
+    HivemindResultArgs {
+      results: None,
       step_id: 0,
     }
   }
 }
 
-pub struct RewardErrorBuilder<'a: 'b, 'b> {
+pub struct HivemindResultBuilder<'a: 'b, 'b> {
   fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
   start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
 }
-impl<'a: 'b, 'b> RewardErrorBuilder<'a, 'b> {
+impl<'a: 'b, 'b> HivemindResultBuilder<'a, 'b> {
   #[inline]
-  pub fn add_prediction_error(&mut self, prediction_error: f32) {
-    self.fbb_.push_slot::<f32>(RewardError::VT_PREDICTION_ERROR, prediction_error, 0.0);
-  }
-  #[inline]
-  pub fn add_reward(&mut self, reward: f32) {
-    self.fbb_.push_slot::<f32>(RewardError::VT_REWARD, reward, 0.0);
+  pub fn add_results(&mut self, results: flatbuffers::WIPOffset<flatbuffers::Vector<'b , flatbuffers::ForwardsUOffset<ShardResult<'b >>>>) {
+    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(HivemindResult::VT_RESULTS, results);
   }
   #[inline]
   pub fn add_step_id(&mut self, step_id: u64) {
-    self.fbb_.push_slot::<u64>(RewardError::VT_STEP_ID, step_id, 0);
+    self.fbb_.push_slot::<u64>(HivemindResult::VT_STEP_ID, step_id, 0);
   }
   #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> RewardErrorBuilder<'a, 'b> {
+  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> HivemindResultBuilder<'a, 'b> {
     let start = _fbb.start_table();
-    RewardErrorBuilder {
+    HivemindResultBuilder {
       fbb_: _fbb,
       start_: start,
     }
   }
   #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<RewardError<'a>> {
+  pub fn finish(self) -> flatbuffers::WIPOffset<HivemindResult<'a>> {
     let o = self.fbb_.end_table(self.start_);
     flatbuffers::WIPOffset::new(o.value())
   }
 }
 
-impl core::fmt::Debug for RewardError<'_> {
+impl core::fmt::Debug for HivemindResult<'_> {
   fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("RewardError");
-      ds.field("prediction_error", &self.prediction_error());
-      ds.field("reward", &self.reward());
+    let mut ds = f.debug_struct("HivemindResult");
+      ds.field("results", &self.results());
       ds.field("step_id", &self.step_id());
       ds.finish()
   }
@@ -885,302 +886,6 @@ impl core::fmt::Debug for Checkpoint<'_> {
       ds.finish()
   }
 }
-pub enum TelemetryOffset {}
-#[derive(Copy, Clone, PartialEq)]
-
-pub struct Telemetry<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for Telemetry<'a> {
-  type Inner = Telemetry<'a>;
-  #[inline]
-  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    Self { _tab: flatbuffers::Table::new(buf, loc) }
-  }
-}
-
-impl<'a> Telemetry<'a> {
-  pub const VT_GRAVITY: flatbuffers::VOffsetT = 4;
-  pub const VT_FRICTION: flatbuffers::VOffsetT = 6;
-  pub const VT_REWARD: flatbuffers::VOffsetT = 8;
-  pub const VT_ENTROPY: flatbuffers::VOffsetT = 10;
-  pub const VT_STEP_ID: flatbuffers::VOffsetT = 12;
-
-  #[inline]
-  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    Telemetry { _tab: table }
-  }
-  #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-    args: &'args TelemetryArgs
-  ) -> flatbuffers::WIPOffset<Telemetry<'bldr>> {
-    let mut builder = TelemetryBuilder::new(_fbb);
-    builder.add_step_id(args.step_id);
-    builder.add_entropy(args.entropy);
-    builder.add_reward(args.reward);
-    builder.add_friction(args.friction);
-    builder.add_gravity(args.gravity);
-    builder.finish()
-  }
-
-
-  #[inline]
-  pub fn gravity(&self) -> f32 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(Telemetry::VT_GRAVITY, Some(0.0)).unwrap()}
-  }
-  #[inline]
-  pub fn friction(&self) -> f32 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(Telemetry::VT_FRICTION, Some(0.0)).unwrap()}
-  }
-  #[inline]
-  pub fn reward(&self) -> f32 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(Telemetry::VT_REWARD, Some(0.0)).unwrap()}
-  }
-  #[inline]
-  pub fn entropy(&self) -> f32 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<f32>(Telemetry::VT_ENTROPY, Some(0.0)).unwrap()}
-  }
-  #[inline]
-  pub fn step_id(&self) -> u64 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<u64>(Telemetry::VT_STEP_ID, Some(0)).unwrap()}
-  }
-}
-
-impl flatbuffers::Verifiable for Telemetry<'_> {
-  #[inline]
-  fn run_verifier(
-    v: &mut flatbuffers::Verifier, pos: usize
-  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-    use self::flatbuffers::Verifiable;
-    v.visit_table(pos)?
-     .visit_field::<f32>("gravity", Self::VT_GRAVITY, false)?
-     .visit_field::<f32>("friction", Self::VT_FRICTION, false)?
-     .visit_field::<f32>("reward", Self::VT_REWARD, false)?
-     .visit_field::<f32>("entropy", Self::VT_ENTROPY, false)?
-     .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
-     .finish();
-    Ok(())
-  }
-}
-pub struct TelemetryArgs {
-    pub gravity: f32,
-    pub friction: f32,
-    pub reward: f32,
-    pub entropy: f32,
-    pub step_id: u64,
-}
-impl<'a> Default for TelemetryArgs {
-  #[inline]
-  fn default() -> Self {
-    TelemetryArgs {
-      gravity: 0.0,
-      friction: 0.0,
-      reward: 0.0,
-      entropy: 0.0,
-      step_id: 0,
-    }
-  }
-}
-
-pub struct TelemetryBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> TelemetryBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_gravity(&mut self, gravity: f32) {
-    self.fbb_.push_slot::<f32>(Telemetry::VT_GRAVITY, gravity, 0.0);
-  }
-  #[inline]
-  pub fn add_friction(&mut self, friction: f32) {
-    self.fbb_.push_slot::<f32>(Telemetry::VT_FRICTION, friction, 0.0);
-  }
-  #[inline]
-  pub fn add_reward(&mut self, reward: f32) {
-    self.fbb_.push_slot::<f32>(Telemetry::VT_REWARD, reward, 0.0);
-  }
-  #[inline]
-  pub fn add_entropy(&mut self, entropy: f32) {
-    self.fbb_.push_slot::<f32>(Telemetry::VT_ENTROPY, entropy, 0.0);
-  }
-  #[inline]
-  pub fn add_step_id(&mut self, step_id: u64) {
-    self.fbb_.push_slot::<u64>(Telemetry::VT_STEP_ID, step_id, 0);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> TelemetryBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    TelemetryBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<Telemetry<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
-  }
-}
-
-impl core::fmt::Debug for Telemetry<'_> {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("Telemetry");
-      ds.field("gravity", &self.gravity());
-      ds.field("friction", &self.friction());
-      ds.field("reward", &self.reward());
-      ds.field("entropy", &self.entropy());
-      ds.field("step_id", &self.step_id());
-      ds.finish()
-  }
-}
-pub enum InferenceResultOffset {}
-#[derive(Copy, Clone, PartialEq)]
-
-pub struct InferenceResult<'a> {
-  pub _tab: flatbuffers::Table<'a>,
-}
-
-impl<'a> flatbuffers::Follow<'a> for InferenceResult<'a> {
-  type Inner = InferenceResult<'a>;
-  #[inline]
-  unsafe fn follow(buf: &'a [u8], loc: usize) -> Self::Inner {
-    Self { _tab: flatbuffers::Table::new(buf, loc) }
-  }
-}
-
-impl<'a> InferenceResult<'a> {
-  pub const VT_PREDICTED_STATE: flatbuffers::VOffsetT = 4;
-  pub const VT_ACTION: flatbuffers::VOffsetT = 6;
-  pub const VT_STEP_ID: flatbuffers::VOffsetT = 8;
-
-  #[inline]
-  pub unsafe fn init_from_table(table: flatbuffers::Table<'a>) -> Self {
-    InferenceResult { _tab: table }
-  }
-  #[allow(unused_mut)]
-  pub fn create<'bldr: 'args, 'args: 'mut_bldr, 'mut_bldr>(
-    _fbb: &'mut_bldr mut flatbuffers::FlatBufferBuilder<'bldr>,
-    args: &'args InferenceResultArgs<'args>
-  ) -> flatbuffers::WIPOffset<InferenceResult<'bldr>> {
-    let mut builder = InferenceResultBuilder::new(_fbb);
-    builder.add_step_id(args.step_id);
-    if let Some(x) = args.action { builder.add_action(x); }
-    if let Some(x) = args.predicted_state { builder.add_predicted_state(x); }
-    builder.finish()
-  }
-
-
-  #[inline]
-  pub fn predicted_state(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(InferenceResult::VT_PREDICTED_STATE, None)}
-  }
-  #[inline]
-  pub fn action(&self) -> Option<flatbuffers::Vector<'a, u8>> {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'a, u8>>>(InferenceResult::VT_ACTION, None)}
-  }
-  #[inline]
-  pub fn step_id(&self) -> u64 {
-    // Safety:
-    // Created from valid Table for this object
-    // which contains a valid value in this slot
-    unsafe { self._tab.get::<u64>(InferenceResult::VT_STEP_ID, Some(0)).unwrap()}
-  }
-}
-
-impl flatbuffers::Verifiable for InferenceResult<'_> {
-  #[inline]
-  fn run_verifier(
-    v: &mut flatbuffers::Verifier, pos: usize
-  ) -> Result<(), flatbuffers::InvalidFlatbuffer> {
-    use self::flatbuffers::Verifiable;
-    v.visit_table(pos)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("predicted_state", Self::VT_PREDICTED_STATE, false)?
-     .visit_field::<flatbuffers::ForwardsUOffset<flatbuffers::Vector<'_, u8>>>("action", Self::VT_ACTION, false)?
-     .visit_field::<u64>("step_id", Self::VT_STEP_ID, false)?
-     .finish();
-    Ok(())
-  }
-}
-pub struct InferenceResultArgs<'a> {
-    pub predicted_state: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub action: Option<flatbuffers::WIPOffset<flatbuffers::Vector<'a, u8>>>,
-    pub step_id: u64,
-}
-impl<'a> Default for InferenceResultArgs<'a> {
-  #[inline]
-  fn default() -> Self {
-    InferenceResultArgs {
-      predicted_state: None,
-      action: None,
-      step_id: 0,
-    }
-  }
-}
-
-pub struct InferenceResultBuilder<'a: 'b, 'b> {
-  fbb_: &'b mut flatbuffers::FlatBufferBuilder<'a>,
-  start_: flatbuffers::WIPOffset<flatbuffers::TableUnfinishedWIPOffset>,
-}
-impl<'a: 'b, 'b> InferenceResultBuilder<'a, 'b> {
-  #[inline]
-  pub fn add_predicted_state(&mut self, predicted_state: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(InferenceResult::VT_PREDICTED_STATE, predicted_state);
-  }
-  #[inline]
-  pub fn add_action(&mut self, action: flatbuffers::WIPOffset<flatbuffers::Vector<'b , u8>>) {
-    self.fbb_.push_slot_always::<flatbuffers::WIPOffset<_>>(InferenceResult::VT_ACTION, action);
-  }
-  #[inline]
-  pub fn add_step_id(&mut self, step_id: u64) {
-    self.fbb_.push_slot::<u64>(InferenceResult::VT_STEP_ID, step_id, 0);
-  }
-  #[inline]
-  pub fn new(_fbb: &'b mut flatbuffers::FlatBufferBuilder<'a>) -> InferenceResultBuilder<'a, 'b> {
-    let start = _fbb.start_table();
-    InferenceResultBuilder {
-      fbb_: _fbb,
-      start_: start,
-    }
-  }
-  #[inline]
-  pub fn finish(self) -> flatbuffers::WIPOffset<InferenceResult<'a>> {
-    let o = self.fbb_.end_table(self.start_);
-    flatbuffers::WIPOffset::new(o.value())
-  }
-}
-
-impl core::fmt::Debug for InferenceResult<'_> {
-  fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-    let mut ds = f.debug_struct("InferenceResult");
-      ds.field("predicted_state", &self.predicted_state());
-      ds.field("action", &self.action());
-      ds.field("step_id", &self.step_id());
-      ds.finish()
-  }
-}
 pub enum MessageOffset {}
 #[derive(Copy, Clone, PartialEq)]
 
@@ -1232,13 +937,13 @@ impl<'a> Message<'a> {
   }
   #[inline]
   #[allow(non_snake_case)]
-  pub fn payload_as_state_update(&self) -> Option<StateUpdate<'a>> {
-    if self.payload_type() == Payload::StateUpdate {
+  pub fn payload_as_hivemind_update(&self) -> Option<HivemindUpdate<'a>> {
+    if self.payload_type() == Payload::HivemindUpdate {
       self.payload().map(|t| {
        // Safety:
        // Created from a valid Table for this object
        // Which contains a valid union in this slot
-       unsafe { StateUpdate::init_from_table(t) }
+       unsafe { HivemindUpdate::init_from_table(t) }
      })
     } else {
       None
@@ -1247,43 +952,13 @@ impl<'a> Message<'a> {
 
   #[inline]
   #[allow(non_snake_case)]
-  pub fn payload_as_action(&self) -> Option<Action<'a>> {
-    if self.payload_type() == Payload::Action {
+  pub fn payload_as_hivemind_result(&self) -> Option<HivemindResult<'a>> {
+    if self.payload_type() == Payload::HivemindResult {
       self.payload().map(|t| {
        // Safety:
        // Created from a valid Table for this object
        // Which contains a valid union in this slot
-       unsafe { Action::init_from_table(t) }
-     })
-    } else {
-      None
-    }
-  }
-
-  #[inline]
-  #[allow(non_snake_case)]
-  pub fn payload_as_prediction(&self) -> Option<Prediction<'a>> {
-    if self.payload_type() == Payload::Prediction {
-      self.payload().map(|t| {
-       // Safety:
-       // Created from a valid Table for this object
-       // Which contains a valid union in this slot
-       unsafe { Prediction::init_from_table(t) }
-     })
-    } else {
-      None
-    }
-  }
-
-  #[inline]
-  #[allow(non_snake_case)]
-  pub fn payload_as_reward_error(&self) -> Option<RewardError<'a>> {
-    if self.payload_type() == Payload::RewardError {
-      self.payload().map(|t| {
-       // Safety:
-       // Created from a valid Table for this object
-       // Which contains a valid union in this slot
-       unsafe { RewardError::init_from_table(t) }
+       unsafe { HivemindResult::init_from_table(t) }
      })
     } else {
       None
@@ -1320,36 +995,6 @@ impl<'a> Message<'a> {
     }
   }
 
-  #[inline]
-  #[allow(non_snake_case)]
-  pub fn payload_as_telemetry(&self) -> Option<Telemetry<'a>> {
-    if self.payload_type() == Payload::Telemetry {
-      self.payload().map(|t| {
-       // Safety:
-       // Created from a valid Table for this object
-       // Which contains a valid union in this slot
-       unsafe { Telemetry::init_from_table(t) }
-     })
-    } else {
-      None
-    }
-  }
-
-  #[inline]
-  #[allow(non_snake_case)]
-  pub fn payload_as_inference_result(&self) -> Option<InferenceResult<'a>> {
-    if self.payload_type() == Payload::InferenceResult {
-      self.payload().map(|t| {
-       // Safety:
-       // Created from a valid Table for this object
-       // Which contains a valid union in this slot
-       unsafe { InferenceResult::init_from_table(t) }
-     })
-    } else {
-      None
-    }
-  }
-
 }
 
 impl flatbuffers::Verifiable for Message<'_> {
@@ -1361,14 +1006,10 @@ impl flatbuffers::Verifiable for Message<'_> {
     v.visit_table(pos)?
      .visit_union::<Payload, _>("payload_type", Self::VT_PAYLOAD_TYPE, "payload", Self::VT_PAYLOAD, false, |key, v, pos| {
         match key {
-          Payload::StateUpdate => v.verify_union_variant::<flatbuffers::ForwardsUOffset<StateUpdate>>("Payload::StateUpdate", pos),
-          Payload::Action => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Action>>("Payload::Action", pos),
-          Payload::Prediction => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Prediction>>("Payload::Prediction", pos),
-          Payload::RewardError => v.verify_union_variant::<flatbuffers::ForwardsUOffset<RewardError>>("Payload::RewardError", pos),
+          Payload::HivemindUpdate => v.verify_union_variant::<flatbuffers::ForwardsUOffset<HivemindUpdate>>("Payload::HivemindUpdate", pos),
+          Payload::HivemindResult => v.verify_union_variant::<flatbuffers::ForwardsUOffset<HivemindResult>>("Payload::HivemindResult", pos),
           Payload::TopologyMutation => v.verify_union_variant::<flatbuffers::ForwardsUOffset<TopologyMutation>>("Payload::TopologyMutation", pos),
           Payload::Checkpoint => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Checkpoint>>("Payload::Checkpoint", pos),
-          Payload::Telemetry => v.verify_union_variant::<flatbuffers::ForwardsUOffset<Telemetry>>("Payload::Telemetry", pos),
-          Payload::InferenceResult => v.verify_union_variant::<flatbuffers::ForwardsUOffset<InferenceResult>>("Payload::InferenceResult", pos),
           _ => Ok(()),
         }
      })?
@@ -1423,29 +1064,15 @@ impl core::fmt::Debug for Message<'_> {
     let mut ds = f.debug_struct("Message");
       ds.field("payload_type", &self.payload_type());
       match self.payload_type() {
-        Payload::StateUpdate => {
-          if let Some(x) = self.payload_as_state_update() {
+        Payload::HivemindUpdate => {
+          if let Some(x) = self.payload_as_hivemind_update() {
             ds.field("payload", &x)
           } else {
             ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
           }
         },
-        Payload::Action => {
-          if let Some(x) = self.payload_as_action() {
-            ds.field("payload", &x)
-          } else {
-            ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
-          }
-        },
-        Payload::Prediction => {
-          if let Some(x) = self.payload_as_prediction() {
-            ds.field("payload", &x)
-          } else {
-            ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
-          }
-        },
-        Payload::RewardError => {
-          if let Some(x) = self.payload_as_reward_error() {
+        Payload::HivemindResult => {
+          if let Some(x) = self.payload_as_hivemind_result() {
             ds.field("payload", &x)
           } else {
             ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
@@ -1460,20 +1087,6 @@ impl core::fmt::Debug for Message<'_> {
         },
         Payload::Checkpoint => {
           if let Some(x) = self.payload_as_checkpoint() {
-            ds.field("payload", &x)
-          } else {
-            ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
-          }
-        },
-        Payload::Telemetry => {
-          if let Some(x) = self.payload_as_telemetry() {
-            ds.field("payload", &x)
-          } else {
-            ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")
-          }
-        },
-        Payload::InferenceResult => {
-          if let Some(x) = self.payload_as_inference_result() {
             ds.field("payload", &x)
           } else {
             ds.field("payload", &"InvalidFlatbuffer: Union discriminant does not match value.")

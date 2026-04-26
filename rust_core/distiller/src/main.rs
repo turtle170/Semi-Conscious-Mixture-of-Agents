@@ -1,119 +1,125 @@
 #[allow(dead_code, unused_imports, clippy::all)]
 mod messages_generated;
 
-use env::Environment;
+use env::Shard;
 use fetcher::ContextFetcher;
-use flatbuffers::FlatBufferBuilder;
+use flatbuffers::{FlatBufferBuilder, WIPOffset};
 use messages_generated::scmoa::{
-    Message, MessageArgs, Payload, StateUpdate, StateUpdateArgs,
-    Checkpoint, CheckpointArgs,
+    Message, MessageArgs, Payload, HivemindUpdate, HivemindUpdateArgs,
+    ShardUpdate, ShardUpdateArgs, ShardResult, HivemindResult,
 };
-use std::collections::VecDeque;
+use std::collections::HashMap;
 use std::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::windows::named_pipe::ServerOptions;
 
+const NUM_SHARDS: u32 = 32;
+
 #[tokio::main]
 async fn main() -> io::Result<()> {
-    let scientist_pipe = r"\\.\pipe\scmoa_scientist";
-    let scientist_server = ServerOptions::new().first_pipe_instance(true).create(scientist_pipe)?;
+    let pipe_name = r"\\.\pipe\scmoa_scientist";
+    let server = ServerOptions::new().first_pipe_instance(true).create(pipe_name)?;
 
-    println!("Distiller: Waiting for SCMoA Agent connection...");
-    scientist_server.connect().await?;
-    println!("Distiller: Agent synchronized.");
-
-    let mut env = Environment::new();
-    let mut fetcher = ContextFetcher::new();
-    let mut builder = FlatBufferBuilder::with_capacity(1024);
-    let mut accuracy_history: VecDeque<bool> = VecDeque::with_capacity(1000);
-    let mut step_history: VecDeque<u8> = VecDeque::with_capacity(16);
-    let mut success_streak = 0;
-    let mut step_id: u64 = 0;
+    println!("Distiller: Booting Hivemind (Gen 2) Orchestrator...");
+    println!("Distiller: Spawning {} parallel environments...", NUM_SHARDS);
     
-    let (mut reader, mut writer) = tokio::io::split(scientist_server);
+    let mut shards: Vec<Shard> = (0..NUM_SHARDS).map(Shard::new).collect();
+    let mut fetcher = ContextFetcher::new();
+    
+    println!("Distiller: Waiting for Hivemind Agent connection...");
+    server.connect().await?;
+    println!("Distiller: Hivemind Linked.");
+
+    let (mut reader, mut writer) = tokio::io::split(server);
+    let mut builder = FlatBufferBuilder::with_capacity(8192);
+    let mut step_id: u64 = 0;
 
     loop {
-        // 1. Environmental Reality
-        let (reward, done) = env.step(0.1);
-        let current_state = env.quantize_state();
-        
-        step_history.push_back(current_state);
-        if step_history.len() > 8 { step_history.pop_front(); }
+        // 1. Parallel Shard Steps & Quantization
+        let mut shard_data = Vec::new();
+        for shard in shards.iter_mut() {
+            let (reward, done) = shard.step(0.1);
+            let state = shard.quantize_state();
+            
+            // Router Logic: Pick Specialist based on physics regime
+            let spec_id = match (shard.params.gravity >= 15.0, shard.params.friction >= 0.85) {
+                (false, false) => 0,
+                (false, true)  => 1,
+                (true, false)  => 2,
+                (true, true)   => 3,
+            };
 
-        // 2. Context Retrieval (Memory Search)
-        let seq: Vec<u8> = step_history.iter().cloned().collect();
-        let ctx_params = fetcher.query_context(&seq);
-        fetcher.record(seq, env.params);
+            // Memory Context (Simplified: just use current params for this shard)
+            shard_data.push((shard.id, state, reward, done, [shard.params.gravity, shard.params.friction], spec_id));
+            
+            if done { shard.randomize_physics(); }
+        }
 
-        // 3. Dispatch Reality to Agent
+        // 2. Build Hivemind Batch Update
         builder.reset();
-        let state_vec = builder.create_vector(&[current_state]);
-        let ctx_vec = builder.create_vector(&[ctx_params.gravity, ctx_params.friction]);
-        let su = StateUpdate::create(&mut builder, &StateUpdateArgs {
-            state: Some(state_vec), step_id, reward, done, context: Some(ctx_vec),
+        let mut update_offsets = Vec::new();
+        for (id, state, reward, done, ctx, spec_id) in shard_data {
+            let context_vec = builder.create_vector(&ctx);
+            let su = ShardUpdate::create(&mut builder, &ShardUpdateArgs {
+                shard_id: id,
+                state,
+                reward,
+                done,
+                context: Some(context_vec),
+                specialist_id: spec_id,
+            });
+            update_offsets.push(su);
+        }
+        
+        let shards_vec = builder.create_vector(&update_offsets);
+        let hu = HivemindUpdate::create(&mut builder, &HivemindUpdateArgs {
+            shards: Some(shards_vec),
+            step_id,
         });
+        
         let msg = Message::create(&mut builder, &MessageArgs {
-            payload_type: Payload::StateUpdate, payload: Some(su.as_union_value()),
+            payload_type: Payload::HivemindUpdate,
+            payload: Some(hu.as_union_value()),
         });
         builder.finish(msg, None);
         let buf = builder.finished_data();
+        
+        // 3. Send Batch
         writer.write_all(&(buf.len() as u32).to_le_bytes()).await?;
         writer.write_all(buf).await?;
+        writer.flush().await?;
 
-        // 4. Ingest Agent Hypothesis (InferenceResult)
+        // 4. Receive Batch Inference
         let mut len_buf = [0u8; 4];
         if reader.read_exact(&mut len_buf).await.is_err() { break; }
         let msg_len = u32::from_le_bytes(len_buf) as usize;
         let mut read_buf = vec![0u8; msg_len];
         reader.read_exact(&mut read_buf).await?;
 
-        let resp_msg = flatbuffers::root::<Message>(&read_buf).expect("Orchestrator: Parse error");
-        if resp_msg.payload_type() == Payload::InferenceResult {
-            let res = resp_msg.payload_as_inference_result().unwrap();
+        // 5. Apply Hivemind Results to Shards
+        let resp_msg = flatbuffers::root::<Message>(&read_buf).expect("Distiller: Parse Error");
+        if resp_msg.payload_type() == Payload::HivemindResult {
+            let hr = resp_msg.payload_as_hivemind_result().unwrap();
+            let results = hr.results().unwrap();
             
-            // a. Process Prediction (The Scientist)
-            let predicted_val = res.predicted_state().unwrap().get(0);
-            let is_correct = predicted_val == current_state;
-            accuracy_history.push_back(is_correct);
-            if accuracy_history.len() > 1000 { accuracy_history.pop_front(); }
-            
-            // b. Process Action (The Worker)
-            let action_val = res.action().unwrap().get(0);
-            env.apply_action(action_val);
-            
-            // c. Evolution Management
-            if done {
-                success_streak += 1;
-                println!("Step {}: Success! Streak: {}", step_id, success_streak);
+            for i in 0..results.len() {
+                let res = results.get(i);
+                let sid = res.shard_id() as usize;
+                let action = res.action();
                 
-                if success_streak >= 10 {
-                    println!("Distiller: Agent Mastered Physics. Advancing Curriculum...");
-                    // Evolutionary Checkpoint
-                    builder.reset();
-                    let path = builder.create_string(&format!("checkpoints/scmoa_gen1_{}.pth", step_id));
-                    let cp = Checkpoint::create(&mut builder, &CheckpointArgs { filepath: Some(path), step_id });
-                    let cp_msg = Message::create(&mut builder, &MessageArgs {
-                        payload_type: Payload::Checkpoint, payload: Some(cp.as_union_value()),
-                    });
-                    builder.finish(cp_msg, None);
-                    let cp_buf = builder.finished_data();
-                    writer.write_all(&(cp_buf.len() as u32).to_le_bytes()).await?;
-                    writer.write_all(cp_buf).await?;
-                    
-                    env.bump_difficulty();
-                    env.randomize_physics();
-                    success_streak = 0;
+                if sid < shards.len() {
+                    shards[sid].apply_action(action);
                 }
-                
-                // Reset trial position
-                env.state.position = (50.0, 50.0);
-                env.state.velocity = (0.0, 0.0);
             }
         }
 
+        if step_id % 100 == 0 {
+            println!("Step {}: Orchestrating {} shards across 4 specialists.", step_id, NUM_SHARDS);
+        }
+
         step_id += 1;
-        // Hyper-frequency loop: 10ms steps (100Hz)
-        tokio::time::sleep(std::time::Duration::from_millis(10)).await;
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await; // 200Hz throughput
     }
+
     Ok(())
 }
