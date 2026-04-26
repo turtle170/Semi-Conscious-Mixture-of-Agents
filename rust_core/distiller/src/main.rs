@@ -10,7 +10,7 @@ use flatbuffers::FlatBufferBuilder;
 #[allow(dead_code, unused_imports, clippy::all)]
 mod messages_generated;
 
-use env::{Shard, PhysicsParams};
+use env::{Shard, PhysicsParams, Rect};
 use messages_generated::scmoa::{
     Message, MessageArgs, Payload, HivemindUpdate, HivemindUpdateArgs,
     ShardUpdate, ShardUpdateArgs, HivemindResult, Config, ConfigArgs,
@@ -86,7 +86,7 @@ struct Args {
 }
 
 struct SVGEnv {
-    obstacles: Vec<usvg::Rect>,
+    obstacles: Vec<Rect>,
     goal: (f32, f32),
 }
 
@@ -98,31 +98,35 @@ fn parse_svg(path: &Path) -> SVGEnv {
     let mut goal = (90.0, 90.0);
     let mut obstacles = Vec::new();
 
-    for node in tree.root().children() {
-        match node {
-            usvg::Node::Path(p) => {
-                let b = p.abs_bounding_box();
-                if p.id() == "goal" {
-                    goal = (b.x() as f32, b.y() as f32);
-                } else {
-                    obstacles.push(b);
-                }
-            }
-            usvg::Node::Group(g) => {
-                for child in g.children() {
-                    if let usvg::Node::Path(p) = child {
-                        let b = p.abs_bounding_box();
-                        if p.id() == "goal" {
-                            goal = (b.x() as f32, b.y() as f32);
-                        } else {
-                            obstacles.push(b);
-                        }
+    let size = tree.size();
+    let scale_x = 100.0 / size.width() as f32;
+    let scale_y = 100.0 / size.height() as f32;
+
+    fn traverse(node: &usvg::Group, scale_x: f32, scale_y: f32, obstacles: &mut Vec<Rect>, goal: &mut (f32, f32)) {
+        for child in node.children() {
+            match child {
+                usvg::Node::Path(p) => {
+                    let b = p.abs_bounding_box();
+                    let nx = b.x() as f32 * scale_x;
+                    let ny = b.y() as f32 * scale_y;
+                    let nw = b.width() as f32 * scale_x;
+                    let nh = b.height() as f32 * scale_y;
+
+                    if p.id() == "goal" {
+                        *goal = (nx + nw/2.0, ny + nh/2.0);
+                    } else {
+                        obstacles.push(Rect { x: nx, y: ny, w: nw, h: nh });
                     }
                 }
+                usvg::Node::Group(g) => {
+                    traverse(g, scale_x, scale_y, obstacles, goal);
+                }
+                _ => {}
             }
-            _ => {}
         }
     }
+
+    traverse(tree.root(), scale_x, scale_y, &mut obstacles, &mut goal);
     SVGEnv { obstacles, goal }
 }
 
@@ -142,7 +146,6 @@ async fn main() -> io::Result<()> {
     let args = Args::parse();
     println!("Aether CLI v2.1: Initializing...");
 
-    // 1. Resource & Mode Calculation
     let mem_per_shard_kb = 512; 
     let available_ram_kb = args.ram_mb * 1024;
     let shard_count = (available_ram_kb / mem_per_shard_kb).min(1024) as u32;
@@ -150,12 +153,14 @@ async fn main() -> io::Result<()> {
     let hz = if is_performance { 500 } else { 100 };
 
     let g_range = parse_range(&args.gravity_range);
-    let f_range = parse_range(&args.friction_range);
+    let _f_range = parse_range(&args.friction_range);
 
-    let _svg_env = parse_svg(&args.svg);
+    let svg_env = parse_svg(&args.svg);
     let mut shards: Vec<Shard> = (0..shard_count).map(|id| {
         let mut s = Shard::new(id);
-        s.goal_radius = if is_performance { 4.0 } else { 10.0 };
+        s.goal_pos = svg_env.goal;
+        s.obstacles = svg_env.obstacles.clone();
+        s.goal_radius = if is_performance { 4.0 } else { 8.0 };
         s
     }).collect();
 
@@ -170,7 +175,6 @@ async fn main() -> io::Result<()> {
     let (mut reader, mut writer) = tokio::io::split(server);
     let mut builder = FlatBufferBuilder::with_capacity(32768);
 
-    // 2. Send Config
     builder.reset();
     let format_off = builder.create_string(&args.output_format);
     let quant_off = builder.create_string(&args.quantization);
@@ -206,7 +210,6 @@ async fn main() -> io::Result<()> {
     loop {
         let loop_start = Instant::now();
         
-        // 3. Step Shards
         let mut shard_data = Vec::with_capacity(shards.len());
         for shard in shards.iter_mut() {
             let (reward, done) = shard.step(1.0 / hz as f32);
@@ -216,7 +219,6 @@ async fn main() -> io::Result<()> {
             if done { shard.randomize_physics(); }
         }
 
-        // 4. Batch Hivemind Update
         builder.reset();
         let mut update_offsets = Vec::new();
         for (id, state, reward, done, ctx, spec_id) in shard_data {
@@ -233,7 +235,6 @@ async fn main() -> io::Result<()> {
         writer.write_all(&(buf.len() as u32).to_le_bytes()).await?;
         writer.write_all(buf).await?;
 
-        // 5. Response handling
         let mut len_buf = [0u8; 4];
         if reader.read_exact(&mut len_buf).await.is_err() { break; }
         let msg_len = u32::from_le_bytes(len_buf) as usize;
@@ -252,9 +253,7 @@ async fn main() -> io::Result<()> {
             }
         }
 
-        // 6. Checkpoint Trigger
         if last_checkpoint_instant.elapsed() >= Duration::from_secs(args.checkpoint_time as u64) {
-            println!("Aether CLI: Triggering Checkpoint...");
             builder.reset();
             let filename = format!("checkpoint_{}.bin", step_id);
             let path_str = args.output_dir.join(filename).to_string_lossy().to_string();
@@ -268,7 +267,6 @@ async fn main() -> io::Result<()> {
             last_checkpoint_instant = Instant::now();
         }
 
-        // 7. Logging (1 FPS)
         if last_log_instant.elapsed() >= Duration::from_secs(1) {
             if let Ok(mut log_file) = File::create(&args.log) {
                 let uptime = start_time.elapsed();
